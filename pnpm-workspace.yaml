@@ -1,0 +1,10 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+allowBuilds:
+  '@serialport/bindings-cpp': set this to true or false
+  sharp: set this to true or false
+onlyBuiltDependencies:
+  - better-sqlite3
+  - esbuild
+  - "@serialport/bindings-cpp"

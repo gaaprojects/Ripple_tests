@@ -1,0 +1,17 @@
+# FX corridor risk weights — feature input to the Risk service (SPEC §5.5).
+# Synthetic / demo values. Higher weight = higher inherent corridor risk.
+version: "2026.06.11-1"
+corridors:
+  CH-EU:
+    weight: 0.10
+    label: "Switzerland -> Eurozone"
+  EU-US:
+    weight: 0.15
+    label: "Eurozone -> United States"
+  CH-US:
+    weight: 0.20
+    label: "Switzerland -> United States"
+  UNKNOWN:
+    weight: 0.60
+    label: "Unmapped corridor (treated as elevated risk)"
+default_weight: 0.60

@@ -1,0 +1,39 @@
+# secrets — NEVER commit (SPEC §0.3 rule 3)
+.env
+.env.*
+!.env.example
+*.seed
+ops/config/*.local.yaml
+
+# vendored sources (cloned per SPEC §0.1)
+vendor/firefly/
+
+# python
+venv/
+__pycache__/
+*.pyc
+services/risk/.venv/
+services/risk/data/*.parquet
+services/risk/registry/
+
+# node
+node_modules/
+dist/
+.next/
+*.tsbuildinfo
+
+# sqlite (local demo state)
+*.sqlite
+*.sqlite-journal
+*.db
+data/*.sqlite
+
+# device simulator keyfile (holds the cold key — I2)
+apps/bridge/.device-key.json
+
+# misc
+.DS_Store
+*.log
+
+# claude code local settings (keep the vendored xrpl-dev skill committed)
+.claude/settings.local.json

@@ -1,0 +1,13 @@
+{
+  "_comment": "SYNTHETIC demo sanctions list — NOT real sanctions data (SPEC §10). Versioned; version logged at boot (SPEC §5.13).",
+  "version": "2026.06.11-1",
+  "source": "fx-sentinel synthetic demo dataset",
+  "entries": [
+    {
+      "name": "ACME Shadow Holdings Ltd",
+      "address": "rSANCTIONED0000000000000000000000",
+      "reason": "demo: synthetic sanctioned entity",
+      "list": "DEMO-OFAC-SDN"
+    }
+  ]
+}
