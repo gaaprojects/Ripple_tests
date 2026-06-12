@@ -109,13 +109,20 @@ talk to a physical Firefly.
 
 ## Testing
 
-See **[`TESTING.md`](./TESTING.md)** for the full manual + automated test path. Quick version:
+See **[`TESTING.md`](./TESTING.md)** for the full manual + automated test path, and
+**[`ops/provisioning/README.md`](./ops/provisioning/README.md)** for the XRPL setup CLIs and the
+P1 smoke test. Quick version:
 
 ```bash
 pnpm test                                    # all workspace unit tests
-pnpm --filter @fx/api test                   # audit hash-chain (intact / tampered / deleted)
+pnpm --filter @fx/core test                  # audit hash-chain (intact / tampered / deleted / undefined-key)
 pnpm --filter @fx/bridge test                # secp256k1 sign/verify, stable pubkey
 pnpm --filter @fx/api exec tsx src/cli/verify-audit.ts   # verify the live audit chain
+
+# P1 end-to-end (XRPL Testnet) — see ops/provisioning/README.md:
+pnpm --filter @fx/provisioning exec tsx run-all.ts        # fund → trustlines → EUD → AMMs → SetRegularKey
+pnpm --filter @fx/provisioning exec tsx acquire-rlusd.ts  # HOT buys RLUSD via the XRP/RLUSD AMM
+pnpm --filter @fx/provisioning exec tsx smoke-payment.ts  # RLUSD→EUD AUTO payment settles tesSUCCESS
 ```
 
 ## Security / non-goals
