@@ -38,5 +38,29 @@ export function migrate(d: Database.Database): void {
       balance_after_rlusd REAL,           -- optional reconciliation snapshot
       note       TEXT
     );
+
+    -- Payment intents (SPEC §6). json = full PaymentIntent snapshot; status mirrored for queries.
+    CREATE TABLE IF NOT EXISTS intents (
+      id         TEXT PRIMARY KEY,        -- ulid
+      ts         TEXT NOT NULL,
+      status     TEXT NOT NULL,
+      destination TEXT NOT NULL,          -- denormalized for velocity / new-counterparty features
+      json       TEXT NOT NULL
+    );
+
+    -- One pipeline pass per intent (SPEC §5.3). json = PipelineRecord snapshot.
+    CREATE TABLE IF NOT EXISTS pipeline_records (
+      intent_id  TEXT PRIMARY KEY,
+      ts         TEXT NOT NULL,
+      json       TEXT NOT NULL
+    );
+
+    -- VETO approval queue (SPEC §5.9). json = QueueItem snapshot; state mirrored for queries.
+    CREATE TABLE IF NOT EXISTS queue_items (
+      intent_id  TEXT PRIMARY KEY,
+      ts         TEXT NOT NULL,
+      state      TEXT NOT NULL,
+      json       TEXT NOT NULL
+    );
   `);
 }

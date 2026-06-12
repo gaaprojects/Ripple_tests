@@ -34,6 +34,14 @@ export const config = {
   bridgeHttpPort: Number(env("BRIDGE_HTTP_PORT", "8787")),
   riskServiceUrl: env("RISK_SERVICE_URL", "http://127.0.0.1:8000"),
   dbPath: optionalEnv("DB_PATH") ?? resolve(REPO_ROOT, "data/fx-sentinel.sqlite"),
+  // Assets (RLUSD issuer verified on-ledger — see ops/provisioning/verify-rlusd.ts)
+  rlusdIssuer: env("RLUSD_ISSUER_ADDRESS", "rQhWct2fv4Vc4KRjRgMrxa8xPN9Zx9iLKV"),
+  rlusdHex: env("RLUSD_CURRENCY_HEX", "524C555344000000000000000000000000000000"),
+  eudCurrency: env("EUD_CURRENCY", "EUD"),
+  // DEMO FX rates for normalizing intent amounts to RLUSD-equivalent (SPEC §5.7 input).
+  // Static + documented on purpose: the normalization feeding the gate must be deterministic.
+  rateEudRlusd: Number(env("RATE_EUD_RLUSD", "1.08")),
+  rateXrpRlusd: Number(env("RATE_XRP_RLUSD", "2.00")),
 };
 
 export function explorerTxUrl(hash: string): string {

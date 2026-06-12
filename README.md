@@ -44,8 +44,26 @@ Implemented so far (**P0 Foundations** + **P1 XRPL core**):
   bounded `SendMax` (never partial), with the audit chain reconstructing
   intent → route → submission → validation
   ([verified tx](https://testnet.xrpl.org/transactions/55041C39723EED76DEC40EA42C08D2DB41AF42CE8DA23B2E5F2C1C3711A7C687))
-- ⏳ **Next (P2):** Pipeline Controller + the pure **Policy Gate** (AUTO/VETO/BLOCK) with
-  table-driven tests
+- ✅ **P2 Pipeline + Policy Gate:** pure-function gate (`packages/core/src/gate.ts`, zero
+  runtime imports — I3) with table-driven tests covering every rule + boundary, golden-file
+  replay test, deterministic Pipeline Controller (Compliance ∥ Risk ∥ Routing with per-service
+  timeouts + fail-closed fallbacks), `POST /intents` API, float ledger (I5)
+- ✅ **Compliance service:** synthetic sanctions screen + on-ledger **XLS-70 KYC credential**
+  check (`ledger_entry` + `lsfAccepted`); `issue-credentials.ts` provisions
+  CredentialCreate/Accept for `COUNTERPARTY_OK`
+- ✅ **Risk service (interim):** deterministic heuristic `/score` with SHAP-shaped additive
+  contributions (base + Σ = score); killing it demos the degraded→VETO fail-closed path.
+  P3 swaps in the trained GBT + TreeExplainer behind the same contract
+- ✅ **VETO path end-to-end (simulator):** approval builds a FRESH tx from `COLD_TREASURY`
+  (fresh `Sequence`, `LastLedgerSequence`+40), digest → bridge → device signs (low-S DER) →
+  local verify → submit. Verified settled on Testnet:
+  [device-signed cold payment](https://testnet.xrpl.org/transactions/FEB66421885903869F24619DE9F22A4DA0FE1128F3F6518499716963FC8498D5)
+- ✅ **Operations console** (`apps/web`): live pipeline feed (AUTO/VETO/BLOCK lanes), intent
+  form with one-click demo presets, approval queue (SHAP bars, narrative, approve→device,
+  live "CONFIRM ON DEVICE" state), treasury + float gauge, audit explorer with hash-chain
+  status. All demo beats run from the dashboard alone
+- ⏳ **Next:** P3 trained risk model · P4 real Firefly hardware signing · P5 AI intake/explainer
+  + autonomous Treasury Agent
 
 ## Architecture
 

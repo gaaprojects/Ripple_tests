@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@fx/shared": "workspace:*",
+    "@noble/curves": "^1.7.0",
     "better-sqlite3": "^11.7.0",
     "dotenv": "^16.4.7",
     "ulid": "^2.3.0",

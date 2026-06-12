@@ -140,6 +140,43 @@ To reset the audit chain to a clean genesis for a fresh demo run:
 
 ---
 
+## 8. P2 — Pipeline + Policy Gate + VETO via simulator ✓ (verified on Testnet 2026-06-12)
+
+New provisioning (also appended to `run-all.ts`):
+
+```bash
+pnpm --filter @fx/provisioning exec tsx issue-credentials.ts  # XLS-70 KYC: Create (issuer) + Accept (subject) for COUNTERPARTY_OK
+pnpm --filter @fx/provisioning exec tsx fund-cold.ts 30       # COLD: RLUSD trustline + balance for VETO payments
+```
+
+Boot the stack (4 processes): `pnpm dev` (api + bridge + web) and `pnpm dev:risk`.
+Then run the whole demo from the dashboard at `http://localhost:3000` — the intent form has
+one-click presets for each beat. Or drive it over HTTP:
+
+```bash
+# AUTO: small EUD to the credentialed counterparty -> settles tesSUCCESS with explorer link
+curl -X POST localhost:8080/intents -H "content-type: application/json" \
+  -d '{"beneficiary":{"address":"<COUNTERPARTY_OK>"},"amount":{"value":2,"currency":"EUD"},"purpose":"invoice","corridor":"CH-EU"}'
+
+# BLOCK: sanctioned counterparty -> outcome BLOCK, rule "sanctioned", zero ledger submissions
+# VETO:  uncredentialed counterparty -> rule "uncredentialed", lands in the queue
+# then:
+curl -X POST localhost:8080/queue/<INTENT_ID>/approve   # builds FRESH tx from COLD, device signs, settles
+curl "localhost:8080/audit?intent_id=<INTENT_ID>"       # full chain: intent -> services -> gate -> sign -> result
+```
+
+**Acceptance — met (2026-06-12):**
+- Gate: 23 table-driven tests, every rule + boundary; golden-file replay (`pipeline-replay.test.ts`);
+  `gate.ts` has zero runtime imports (asserted by a test).
+- Pipeline: risk service killed → degraded 0.99 → VETO (test + live drill). Compliance failure → BLOCK.
+- AUTO beat settled via the full pipeline:
+  [`BABAEEDD…E54B14`](https://testnet.xrpl.org/transactions/BABAEEDDEC7F12C8222D887FE07C4F828D06A0ACBB55872A370D5645F5E54B14)
+- VETO beat: approve → bridge → simulator signs digest (low-S DER) → local verify → COLD payment
+  settled: [`FEB66421…8498D5`](https://testnet.xrpl.org/transactions/FEB66421885903869F24619DE9F22A4DA0FE1128F3F6518499716963FC8498D5)
+- Audit trail for the VETO intent reconstructs all 9 steps; chain intact.
+
+---
+
 ## Failure drills (rehearse before the demo — SPEC §8 P5)
 
 - Kill the risk service mid-run → pipeline yields **degraded-VETO**, never a crash or AUTO.

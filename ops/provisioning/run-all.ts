@@ -19,6 +19,8 @@ const STEPS = [
   "mint-eud.ts",
   "create-amms.ts",
   "set-regular-key.ts",
+  "issue-credentials.ts", // XLS-70 KYC for COUNTERPARTY_OK (SPEC §5.4)
+  "fund-cold.ts", // RLUSD trustline + balance on COLD for the VETO path (SPEC §5.9)
 ];
 
 for (const step of STEPS) {

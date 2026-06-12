@@ -35,6 +35,7 @@ export type GateOutcome = z.infer<typeof GateOutcome>;
 /** matched_rule values mirror the decision order in SPEC §5.7. */
 export const MatchedRule = z.enum([
   "sanctioned", // 1 -> BLOCK
+  "compliance_degraded", // 1b -> BLOCK (compliance service failed; fail-closed per SPEC §5.3)
   "uncredentialed", // 2 -> VETO (config can escalate to BLOCK)
   "no_route_or_slippage", // 3 -> VETO
   "risk", // 4 -> VETO (degraded or score >= threshold)

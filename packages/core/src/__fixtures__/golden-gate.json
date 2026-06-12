@@ -1,0 +1,153 @@
+{
+  "auto": {
+    "input": {
+      "intent": {
+        "id": "01GOLDEN00000000000000000000",
+        "source": "manual",
+        "created_by": "human:test",
+        "beneficiary": {
+          "name": "Alpine Suppliers AG",
+          "address": "rGOLDENDEST00000000000000000000"
+        },
+        "amount": {
+          "value": 120,
+          "currency": "RLUSD"
+        },
+        "purpose": "invoice 7",
+        "corridor": "CH-EU",
+        "status": "pending",
+        "created_at": "2026-06-12T09:00:00.000Z"
+      },
+      "amount_rlusd_eq": 120,
+      "compliance": {
+        "sanctioned": false,
+        "credential_found": true,
+        "credential_accepted": true,
+        "sources": [
+          "sanctions:2026.06.11-1",
+          "ledger:credential"
+        ],
+        "degraded": false,
+        "checked_at": "2026-06-12T09:00:01.000Z"
+      },
+      "risk": {
+        "score": 0.31,
+        "model_version": "heuristic-v1",
+        "shap": [
+          {
+            "feature": "amount_to_float_ratio",
+            "value": 0.24,
+            "contribution": 0.096
+          }
+        ],
+        "base_value": 0.05,
+        "degraded": false,
+        "checked_at": "2026-06-12T09:00:01.000Z"
+      },
+      "route": {
+        "paths": [
+          {
+            "steps": [
+              {
+                "currency": "XRP"
+              }
+            ]
+          }
+        ],
+        "quoted_cost": 120.4,
+        "send_max": 126.42,
+        "slippage_tolerance": 0.05,
+        "no_route": false,
+        "degraded": false,
+        "checked_at": "2026-06-12T09:00:01.000Z"
+      },
+      "hot_float_headroom_rlusd": 380,
+      "policy": {
+        "version": "2026.06.12-1",
+        "auto_max_rlusd": 250,
+        "risk_veto_threshold": 0.7,
+        "slippage_tolerance": 0.05,
+        "uncredentialed_action": "VETO",
+        "hot_float_cap_rlusd": 500
+      }
+    },
+    "expected": {
+      "outcome": "AUTO",
+      "matched_rule": "auto",
+      "config_version": "2026.06.12-1",
+      "input_hash": "300cc470e9579af816dcf109bff4e26ba99796f77c10db46ea30161106e6c44f"
+    }
+  },
+  "risk_degraded_veto": {
+    "input": {
+      "intent": {
+        "id": "01GOLDEN00000000000000000000",
+        "source": "manual",
+        "created_by": "human:test",
+        "beneficiary": {
+          "name": "Alpine Suppliers AG",
+          "address": "rGOLDENDEST00000000000000000000"
+        },
+        "amount": {
+          "value": 120,
+          "currency": "RLUSD"
+        },
+        "purpose": "invoice 7",
+        "corridor": "CH-EU",
+        "status": "pending",
+        "created_at": "2026-06-12T09:00:00.000Z"
+      },
+      "amount_rlusd_eq": 120,
+      "compliance": {
+        "sanctioned": false,
+        "credential_found": true,
+        "credential_accepted": true,
+        "sources": [
+          "sanctions:2026.06.11-1",
+          "ledger:credential"
+        ],
+        "degraded": false,
+        "checked_at": "2026-06-12T09:00:01.000Z"
+      },
+      "risk": {
+        "score": 0.99,
+        "model_version": "degraded (risk service unreachable)",
+        "shap": [],
+        "degraded": true,
+        "checked_at": "2026-06-12T09:00:06.000Z"
+      },
+      "route": {
+        "paths": [
+          {
+            "steps": [
+              {
+                "currency": "XRP"
+              }
+            ]
+          }
+        ],
+        "quoted_cost": 120.4,
+        "send_max": 126.42,
+        "slippage_tolerance": 0.05,
+        "no_route": false,
+        "degraded": false,
+        "checked_at": "2026-06-12T09:00:01.000Z"
+      },
+      "hot_float_headroom_rlusd": 380,
+      "policy": {
+        "version": "2026.06.12-1",
+        "auto_max_rlusd": 250,
+        "risk_veto_threshold": 0.7,
+        "slippage_tolerance": 0.05,
+        "uncredentialed_action": "VETO",
+        "hot_float_cap_rlusd": 500
+      }
+    },
+    "expected": {
+      "outcome": "VETO",
+      "matched_rule": "risk",
+      "config_version": "2026.06.12-1",
+      "input_hash": "ffbb3a2c8ec59f6e5033e975c656f52efaa8a9b1accce4a90f6e6e42941893ac"
+    }
+  }
+}

@@ -1,11 +1,13 @@
 # Policy Gate thresholds — versioned, hot-reloadable. Version stamped into every GateDecision.
 # Consumed by the pure-function gate (SPEC §5.7, I3). Tune at venue.
-version: "2026.06.11-1"
+version: "2026.06.12-1"
 
 # Decision-order thresholds (first match wins; see SPEC §5.7).
 auto_max_rlusd: 250            # rule 5: amount above this -> VETO
 risk_veto_threshold: 0.70     # rule 4: score >= this -> VETO
-slippage_tolerance: 0.005     # 0.5% — bounds SendMax; beyond tolerance -> VETO (rule 3)
+# Bounds SendMax; quotes looser than this -> VETO (rule 3). 5% on Testnet: the seeded demo
+# AMMs are shallow and the RLUSD->XRP->EUD route pays two 0.5% hops (mainnet would use 0.5%).
+slippage_tolerance: 0.05
 
 # Escalation flags
 uncredentialed_action: "VETO"  # rule 2: VETO | BLOCK

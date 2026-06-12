@@ -20,6 +20,10 @@ const ulid = monotonicFactory();
  * render undefined/function array elements as `null`. Otherwise the round-trip drops them and
  * the chain falsely reports tamper (I4).
  */
+export function canonicalJson(value: unknown): string {
+  return canonical(value);
+}
+
 function canonical(value: unknown): string {
   if (value === undefined || typeof value === "function") return "null"; // only reached for array elements
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -112,6 +116,14 @@ export function verifyChain(handle: Db = db()): ChainVerification {
     prev = row.hash;
   }
   return { ok: true, count: rows.length };
+}
+
+/** Most recent audit records (dashboard explorer), newest first. */
+export function recentAudit(limit = 80, handle: Db = db()): AuditRecord[] {
+  const rows = handle
+    .prepare("SELECT * FROM audit_log ORDER BY rowid DESC LIMIT ?")
+    .all(limit) as Array<Omit<AuditRecord, "payload"> & { payload: string }>;
+  return rows.map((r) => ({ ...r, payload: JSON.parse(r.payload) }));
 }
 
 /** Reconstruct the full path for an intent (SPEC §5.13 acceptance). */

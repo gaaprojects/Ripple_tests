@@ -1,4 +1,5 @@
-# Risk service (SPEC §5.5). P0: skeleton + /health. P3 adds: scikit-learn/xgboost, shap, pandas.
+# Risk service (SPEC §5.5). P2: deterministic heuristic /score. P3 adds: scikit-learn/xgboost, shap, pandas.
 fastapi>=0.115
 uvicorn[standard]>=0.32
 pydantic>=2.9
+pyyaml>=6.0

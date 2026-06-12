@@ -3,6 +3,34 @@ import { xrplClient } from "./xrpl/client.js";
 import { appendAudit } from "./audit.js";
 import { explorerTxUrl } from "./config.js";
 
+/**
+ * Submit an externally-signed blob (VETO path: TxnSignature came from the device) with
+ * audit-before + audit-after (I4). Returns the response; caller decides on non-tes handling.
+ */
+export async function submitSignedBlobAudited(
+  label: string,
+  blob: string,
+  account: string,
+  intentId: string | null = null,
+): Promise<TxResponse> {
+  const client = await xrplClient();
+  appendAudit({
+    intent_id: intentId,
+    actor: "system",
+    event: `${label}.submitting`,
+    payload: { account, blob_prefix: blob.slice(0, 32) },
+  });
+  const res = await client.submitAndWait(blob);
+  const code = txResultCode(res);
+  appendAudit({
+    intent_id: intentId,
+    actor: "system",
+    event: `${label}.result`,
+    payload: { hash: res.result.hash, code, explorer: explorerTxUrl(res.result.hash) },
+  });
+  return res;
+}
+
 export function txResultCode(res: TxResponse): string {
   const meta = res.result.meta;
   return meta && typeof meta === "object" && "TransactionResult" in meta
