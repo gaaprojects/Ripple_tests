@@ -22,14 +22,22 @@ dist/
 .next/
 *.tsbuildinfo
 
-# sqlite (local demo state)
+# sqlite (local demo state) — including WAL/SHM sidecars
 *.sqlite
 *.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
 *.db
-data/*.sqlite
+data/*.sqlite*
+
+# next.js generated type shim
+next-env.d.ts
 
 # device simulator keyfile (holds the cold key — I2)
 apps/bridge/.device-key.json
+
+# cold treasury master seed — provisioning-only, transient (SPEC §7: never in .env)
+ops/provisioning/.provision-secrets.json
 
 # misc
 .DS_Store

@@ -1,7 +1,5 @@
 import Fastify from "fastify";
-import { config, loadPolicy } from "./config.js";
-import { amendmentEnabled } from "./xrpl/client.js";
-import { verifyChain } from "./audit.js";
+import { config, loadPolicy, amendmentEnabled, verifyChain } from "@fx/core";
 
 const app = Fastify({ logger: true });
 

@@ -20,7 +20,7 @@ pnpm test                   # every workspace
 
 | Suite | Proves | SPEC |
 |---|---|---|
-| `apps/api` → `src/audit.test.ts` | hash chain verifies when intact; **fails** on a tampered payload or a deleted row | §5.13, I4 |
+| `packages/core` → `src/audit.test.ts` | drives the real `appendAudit`/`verifyChain` against an in-memory DB: chain verifies when intact; **fails** on a tampered payload or deleted row; verifies payloads carrying `undefined`-valued keys/array elements (canonical JSON must match `JSON.stringify`) | §5.13, I4 |
 | `apps/bridge` → `src/crypto.test.ts` | secp256k1 sign→verify round-trip; signature over a different digest is rejected; pubkey is stable for a given key | §5.2 |
 
 Run one suite: `pnpm --filter @fx/api test` · `pnpm --filter @fx/bridge test`.
@@ -111,19 +111,32 @@ gradient-boosted model + SHAP. The gate treats degraded risk conservatively (fai
 
 ---
 
-## 7. P1 — XRPL core (in progress)
+## 7. P1 — XRPL core ✓ (verified on Testnet 2026-06-12)
 
-Once the provisioning CLIs land:
+Provisioning CLIs are idempotent and audited; run them in order (or via `run-all.ts`):
 
 ```bash
-pnpm --filter @fx/api exec tsx ../../ops/provisioning/run-all.ts   # fund -> trustlines -> EUD -> AMMs -> SetRegularKey
-# then the smoke payment:
-pnpm --filter @fx/api exec tsx ../../ops/provisioning/smoke-payment.ts
+pnpm --filter @fx/provisioning exec tsx run-all.ts        # fund -> trustlines -> EUD -> AMMs -> SetRegularKey
+pnpm --filter @fx/provisioning exec tsx acquire-rlusd.ts  # HOT buys RLUSD via the XRP/RLUSD AMM (XRP->RLUSD)
+pnpm --filter @fx/provisioning exec tsx smoke-payment.ts  # the RLUSD->EUD AUTO payment
 ```
 
-**Acceptance (SPEC §5.8):** one hardcoded RLUSD→EUD AUTO payment routes through both seeded AMMs
-and settles `tesSUCCESS` < 10 s; the tx is visible on `https://testnet.xrpl.org`; the float
-ledger decrements; `verify-audit` reconstructs intent → route → submission → validation.
+Inspect live pool/trustline state at any point:
+`pnpm --filter @fx/provisioning exec tsx debug-state.ts`.
+
+**Routing note (SPEC §5.6).** The legacy `ripple_path_find` does **not** synthesize the 2-hop
+AMM bridge RLUSD→XRP→EUD, so `findRoute` falls back (`bridgeVia: { currency: "XRP" }`) to a
+2-leg quote — RLUSD→XRP and XRP→EUD, each a single hop the pathfinder *can* price — and attaches
+an explicit `[[{currency:"XRP"}]]` path. Exact `Amount`, bounded `SendMax`, never partial.
+
+**Acceptance (SPEC §5.8) — met:** one hardcoded RLUSD→EUD AUTO payment routes through both
+seeded AMMs and settles `tesSUCCESS` in seconds; `verify-audit` reconstructs intent → route →
+submission → validation (4-record chain, intact). Verified tx:
+[`55041C39…A7C687`](https://testnet.xrpl.org/transactions/55041C39723EED76DEC40EA42C08D2DB41AF42CE8DA23B2E5F2C1C3711A7C687)
+(deliver 1 EUD, quote ~0.75 RLUSD, 5% slippage buffer for the small Testnet pools).
+
+To reset the audit chain to a clean genesis for a fresh demo run:
+`pnpm --filter @fx/provisioning exec tsx reset-audit.ts` (Testnet dev data only).
 
 ---
 

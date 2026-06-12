@@ -11,17 +11,15 @@
     "lint": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@fx/core": "workspace:*",
     "@fx/shared": "workspace:*",
-    "better-sqlite3": "^11.7.0",
     "dotenv": "^16.4.7",
     "fastify": "^5.2.0",
     "ulid": "^2.3.0",
-    "yaml": "^2.6.1",
     "xrpl": "^4.1.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",

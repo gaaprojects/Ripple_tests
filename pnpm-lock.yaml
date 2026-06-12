@@ -20,12 +20,12 @@ importers:
 
   apps/api:
     dependencies:
+      '@fx/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@fx/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      better-sqlite3:
-        specifier: ^11.7.0
-        version: 11.10.0
       dotenv:
         specifier: ^16.4.7
         version: 16.6.1
@@ -38,16 +38,10 @@ importers:
       xrpl:
         specifier: ^4.1.0
         version: 4.6.0
-      yaml:
-        specifier: ^2.6.1
-        version: 2.9.0
       zod:
         specifier: ^3.24.1
         version: 3.25.76
     devDependencies:
-      '@types/better-sqlite3':
-        specifier: ^7.6.12
-        version: 7.6.13
       '@types/node':
         specifier: ^22.10.2
         version: 22.19.20
@@ -126,6 +120,68 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
+
+  ops/provisioning:
+    dependencies:
+      '@fx/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@fx/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
+      ulid:
+        specifier: ^2.3.0
+        version: 2.4.0
+      xrpl:
+        specifier: ^4.1.0
+        version: 4.6.0
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.22.4
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/core:
+    dependencies:
+      '@fx/shared':
+        specifier: workspace:*
+        version: link:../shared
+      better-sqlite3:
+        specifier: ^11.7.0
+        version: 11.10.0
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
+      ulid:
+        specifier: ^2.3.0
+        version: 2.4.0
+      xrpl:
+        specifier: ^4.1.0
+        version: 4.6.0
+      yaml:
+        specifier: ^2.6.1
+        version: 2.9.0
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: ^7.6.12
+        version: 7.6.13
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.19.20
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.19.20)
 
   packages/shared:
     dependencies:

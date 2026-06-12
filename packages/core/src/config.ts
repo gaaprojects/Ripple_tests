@@ -6,7 +6,7 @@ import { parse as parseYaml } from "yaml";
 import { PolicyConfig } from "@fx/shared";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// apps/api/src -> repo root is three levels up
+// packages/core/src -> repo root is three levels up
 export const REPO_ROOT = resolve(__dirname, "../../..");
 
 dotenv.config({ path: resolve(REPO_ROOT, ".env") });
@@ -33,9 +33,13 @@ export const config = {
   apiPort: Number(env("API_HTTP_PORT", "8080")),
   bridgeHttpPort: Number(env("BRIDGE_HTTP_PORT", "8787")),
   riskServiceUrl: env("RISK_SERVICE_URL", "http://127.0.0.1:8000"),
-  dbPath: resolve(REPO_ROOT, "data/fx-sentinel.sqlite"),
+  dbPath: optionalEnv("DB_PATH") ?? resolve(REPO_ROOT, "data/fx-sentinel.sqlite"),
 };
 
 export function explorerTxUrl(hash: string): string {
   return `${config.explorerBase}/transactions/${hash}`;
+}
+
+export function explorerAccountUrl(addr: string): string {
+  return `${config.explorerBase}/accounts/${addr}`;
 }

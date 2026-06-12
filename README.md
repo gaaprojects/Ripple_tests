@@ -25,10 +25,11 @@ rules for contributors (and Claude Code): [`CLAUDE.md`](./CLAUDE.md).
 
 ## Status
 
-Implemented so far (**P0 Foundations** + start of **P1 XRPL core**):
+Implemented so far (**P0 Foundations** + **P1 XRPL core**):
 
-- ✅ pnpm monorepo scaffold, shared zod contracts (`packages/shared`, SPEC §6)
-- ✅ SQLite audit tier with tamper-evident **hash chain** (`apps/api`, SPEC §5.13 / I4)
+- ✅ pnpm monorepo scaffold, shared zod contracts (`packages/shared`, SPEC §6); shared Node
+  runtime in `packages/core` (config, audit, XRPL client, routing, AUTO executor)
+- ✅ SQLite audit tier with tamper-evident **hash chain** (`packages/core`, SPEC §5.13 / I4)
 - ✅ API `/health` with the **XLS-70 Credentials amendment boot check** — verified **enabled on
   Testnet** (resolves SPEC D1; no Devnet fallback needed)
 - ✅ Device bridge (`apps/bridge`): HTTP/WS API, **simulator-first** signer + real-Firefly
@@ -36,8 +37,15 @@ Implemented so far (**P0 Foundations** + start of **P1 XRPL core**):
   canonical **low-S DER secp256k1** signature
 - ✅ Dashboard skeleton (`apps/web`) with the loud **SIMULATED DEVICE** badge
 - ✅ Risk service skeleton (`services/risk`, FastAPI `/health`; trained model + SHAP is P3)
-- ⏳ **Next (P1):** provisioning CLIs (accounts, trustlines, EUD mint, AMMs, `SetRegularKey`) →
-  routing (`path_find`) → AUTO executor → one RLUSD→EUD payment settling on explorer
+- ✅ **P1 XRPL core:** idempotent provisioning CLIs (`ops/provisioning`: fund accounts,
+  trustlines, EUD mint, both AMMs, `SetRegularKey` to the device key) → routing
+  (`ripple_path_find` + explicit XRP-bridge fallback) → **AUTO executor**. One hardcoded
+  RLUSD→EUD payment settles `tesSUCCESS` on Testnet through both AMMs, exact `Amount` /
+  bounded `SendMax` (never partial), with the audit chain reconstructing
+  intent → route → submission → validation
+  ([verified tx](https://testnet.xrpl.org/transactions/55041C39723EED76DEC40EA42C08D2DB41AF42CE8DA23B2E5F2C1C3711A7C687))
+- ⏳ **Next (P2):** Pipeline Controller + the pure **Policy Gate** (AUTO/VETO/BLOCK) with
+  table-driven tests
 
 ## Architecture
 
@@ -59,7 +67,8 @@ gate; append-only audit; capped float) are asserted in code and tests. See `CLAU
 | Path | What |
 |---|---|
 | `packages/shared` | zod schemas + TS types — the cross-service contracts (SPEC §6) |
-| `apps/api` | Fastify: `/health`, audit tier, (P1) routing + AUTO executor |
+| `packages/core` | shared Node runtime: config, audit hash chain, XRPL client, routing, AUTO executor |
+| `apps/api` | Fastify: `/health` + amendment boot check; consumes `@fx/core` |
 | `apps/bridge` | device daemon (USB serial ⇄ HTTP/WS) + simulator |
 | `apps/web` | Next.js dashboard |
 | `services/risk` | Python FastAPI risk service (ML + SHAP, P3) |

@@ -1,6 +1,6 @@
 // Hash-chain verification command (SPEC §5.13 acceptance).
 // Run: pnpm --filter @fx/api exec tsx src/cli/verify-audit.ts
-import { verifyChain } from "../audit.js";
+import { verifyChain } from "@fx/core";
 
 const result = verifyChain();
 if (result.ok) {

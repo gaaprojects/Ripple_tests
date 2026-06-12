@@ -14,7 +14,8 @@ export function db(): Database.Database {
   return d;
 }
 
-function migrate(d: Database.Database): void {
+/** Create the audit/float schema on a handle. Exported so tests can build an isolated db. */
+export function migrate(d: Database.Database): void {
   d.exec(`
     -- Append-only audit log with hash chain (SPEC §5.13, I4)
     CREATE TABLE IF NOT EXISTS audit_log (
