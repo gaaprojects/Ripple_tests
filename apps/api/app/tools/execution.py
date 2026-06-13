@@ -55,10 +55,14 @@ async def execute_payment(payment_id: str, intent: PaymentIntent, route: RouteQu
         "destination": intent.to,
         "amount": _token_amount(settings.token_currency, route.dest_amount, settings),
     }
+    # Paths + SendMax only apply to a cross-currency payment (the treasury spends
+    # a different asset than it delivers). On a same-asset direct payment XRPL
+    # rejects a redundant SendMax with temREDUNDANT, so only attach when routing
+    # actually found a cross-currency path.
     if route.paths:
         kwargs["paths"] = route.paths
-    if route.send_max is not None:
-        kwargs["send_max"] = _token_amount(settings.token_currency, route.send_max, settings)
+        if route.send_max is not None:
+            kwargs["send_max"] = _token_amount(settings.token_currency, route.send_max, settings)
     if route.deliver_min is not None:
         kwargs["deliver_min"] = _token_amount(settings.token_currency, route.deliver_min, settings)
         kwargs["flags"] = PaymentFlag.TF_PARTIAL_PAYMENT
