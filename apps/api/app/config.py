@@ -1,12 +1,19 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Repo-root .env, resolved by absolute path so the API loads it no matter what
+# directory uvicorn is launched from (root or apps/api). A local ".env" is also
+# read for Docker/Railway where the app dir is the working directory; real
+# environment variables still take precedence over both.
+_ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"
 
 
 class Settings(BaseSettings):
     """Runtime configuration, loaded from environment / root .env."""
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=(str(_ROOT_ENV), ".env"), extra="ignore")
 
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/treasury"
 
