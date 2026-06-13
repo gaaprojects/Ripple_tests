@@ -26,8 +26,10 @@ npm install                                   # from repo root
 npm run keygen --workspace apps/firefly-bridge
 ```
 
-Copy the printed values: `FIREFLY_MOCK_PRIVATE_KEY` into this bridge's env,
-`FIREFLY_PUBLIC_KEY` into the API's env. Then:
+Copy the printed values into the repo-root `.env`: `FIREFLY_MOCK_PRIVATE_KEY`
+(read by this bridge) and `FIREFLY_PUBLIC_KEY` (read by the API). The bridge
+auto-loads the root `.env`; an exported `FIREFLY_MOCK_PRIVATE_KEY` still wins.
+Then:
 
 ```bash
 npm run dev:bridge        # http://localhost:4747

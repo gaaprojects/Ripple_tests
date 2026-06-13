@@ -1,8 +1,22 @@
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import cors from "cors";
 import express from "express";
 import type { BridgeSignRequest, BridgeSignResponse } from "@treasury/shared";
 
 import { MockFireflyDevice } from "./device.js";
+
+// Load the repo-root .env so FIREFLY_MOCK_PRIVATE_KEY (and BRIDGE_PORT) are
+// available without manually exporting them. Real exported env vars win, so we
+// only fall back to the file when the key isn't already set. Uses Node's
+// built-in loader (>=20.12); a missing file or older Node is a no-op.
+const ROOT_ENV = resolve(dirname(fileURLToPath(import.meta.url)), "../../../.env");
+const loadEnvFile = (process as { loadEnvFile?: (path: string) => void }).loadEnvFile;
+if (!process.env.FIREFLY_MOCK_PRIVATE_KEY && loadEnvFile && existsSync(ROOT_ENV)) {
+  loadEnvFile(ROOT_ENV);
+}
 
 const PORT = Number(process.env.BRIDGE_PORT ?? 4747);
 const MOCK_KEY = process.env.FIREFLY_MOCK_PRIVATE_KEY;
