@@ -48,6 +48,8 @@ export function PaymentCard({
   const isTerminal = TERMINAL.has(status);
   const topSanctionsMatch = compliance?.sanctionsMatches[0];
   const publicIntel = compliance?.publicIntel;
+  const credential = compliance?.credential;
+  const route = payment.routeQuote;
 
   return (
     <article className={`payment status-${status}`}>
@@ -63,6 +65,23 @@ export function PaymentCard({
       <p className="muted">
         {intent.senderName}, {intent.senderCountry} to {intent.receiverEntityType} payout
       </p>
+      {route && (
+        <p className="muted">
+          Route: {route.pathSummary}
+          {route.paths && route.paths.length > 0 ? " (ripple_path_find)" : ""}
+          {route.sendMax != null
+            ? ` · SendMax ${route.sendMax.toLocaleString()}`
+            : ""}
+        </p>
+      )}
+      {credential?.checked && (
+        <p className="muted kyc">
+          <span className={`kyc-badge ${credential.verified ? "verified" : "missing"}`}>
+            {credential.verified ? "KYC verified" : "KYC missing"}
+          </span>
+          XLS-70 credential: {credential.reason}
+        </p>
+      )}
       {compliance && <p className="muted">{compliance.explanation}</p>}
       {topSanctionsMatch && (
         <p className="muted">
