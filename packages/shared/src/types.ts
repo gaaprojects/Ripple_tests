@@ -34,6 +34,10 @@ export interface RouteQuote {
   rate: number;
   pathSummary: string;
   estimatedFee: number;
+  // XRPL pathfinding output (ripple_path_find). null falls back to the default path.
+  paths?: unknown[][] | null;
+  sendMax?: number | null; // Payment.SendMax cap on source spend
+  deliverMin?: number | null; // Payment.DeliverMin floor for partial payments
 }
 
 export interface SanctionsMatch {
@@ -53,6 +57,20 @@ export interface PublicIntelResult {
   summary: string;
 }
 
+// XRPL Credentials (XLS-70) KYC status for the receiver. `checked` is false when
+// the credential layer is disabled; `verified` is true only for an accepted,
+// non-expired credential from the trusted issuer.
+export interface CredentialStatus {
+  checked: boolean;
+  verified: boolean;
+  subject: string | null;
+  issuer: string | null;
+  credentialType: string | null;
+  expiration: string | null;
+  uri: string | null;
+  reason: string;
+}
+
 export interface ComplianceResult {
   amlScore: number; // 0–100
   sanctioned: boolean;
@@ -60,6 +78,7 @@ export interface ComplianceResult {
   explanation: string;
   sanctionsMatches: SanctionsMatch[];
   publicIntel: PublicIntelResult | null;
+  credential: CredentialStatus | null;
 }
 
 export interface PolicyDecision {

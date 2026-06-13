@@ -18,7 +18,7 @@ from .. import store
 from ..config import get_settings
 from ..policy import engine
 from ..schemas import AgentLogEntry, Payment, PaymentIntent, PaymentStatus
-from ..tools import audit, compliance, execution, firefly, receipt, routing
+from ..tools import audit, compliance, credentials, execution, firefly, receipt, routing
 
 # Statuses that represent a terminal, immutable outcome.
 TERMINAL_STATUSES = {PaymentStatus.settled, PaymentStatus.released, PaymentStatus.blocked}
@@ -48,7 +48,11 @@ async def process_payment(intent: PaymentIntent) -> Payment:
     payment.route_quote = route
     _log(payment_id, f"Routed: {route.path_summary}, settling {route.dest_amount}.")
 
-    screen = compliance.check_compliance(intent)
+    credential = await credentials.verify_kyc(intent.to)
+    if credential.checked:
+        _log(payment_id, f"KYC credential ({credential.credential_type}): {credential.reason}.")
+
+    screen = compliance.check_compliance(intent, credential=credential)
     payment.compliance = screen
     _log(payment_id, screen.explanation)
 

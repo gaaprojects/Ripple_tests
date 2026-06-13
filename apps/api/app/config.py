@@ -22,6 +22,23 @@ class Settings(BaseSettings):
     policy_threshold_usd: float = 10_000.0
     policy_compliance_flag_score: int = 60
 
+    # Routing / pathfinding. Slippage buffer added to the discovered source
+    # amount when capping Payment.SendMax (basis points). Partial payments add
+    # DeliverMin + tfPartialPayment so a payment still lands if a path narrows.
+    route_slippage_bps: int = 50
+    route_partial_payment: bool = False
+
+    # XRPL Credentials (XLS-70) KYC layer. When enabled, the receiver must hold
+    # an accepted, non-expired credential of `credential_type` issued by
+    # `credential_issuer_address`; otherwise compliance raises a risk flag (which
+    # can push the payment to hardware approval — code decides, never the LLM).
+    # `credential_issuer_seed` lets the treasury act as the issuer for
+    # CredentialCreate; never commit a real seed.
+    credential_kyc_enabled: bool = False
+    credential_type: str = "KYC"
+    credential_issuer_address: str = ""
+    credential_issuer_seed: str = ""
+
     frankfurter_base_url: str = "https://api.frankfurter.dev/v1"
 
     opensanctions_api_key: str = ""

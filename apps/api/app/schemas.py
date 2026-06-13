@@ -52,6 +52,15 @@ class RouteQuote(CamelModel):
     rate: float
     path_summary: str
     estimated_fee: float
+    # XRPL pathfinding output. Populated from ripple_path_find in real mode; the
+    # execution tool attaches these to the Payment. None falls back to the
+    # ledger's default path.
+    paths: list[list[dict]] | None = None
+    # Cap on what the treasury will spend in the source asset (Payment.SendMax).
+    send_max: float | None = None
+    # Floor the receiver must be delivered when partial payments are allowed
+    # (Payment.DeliverMin + tfPartialPayment). None means deliver the exact amount.
+    deliver_min: float | None = None
 
 
 class SanctionsMatch(CamelModel):
@@ -71,6 +80,24 @@ class PublicIntelResult(CamelModel):
     summary: str
 
 
+class CredentialStatus(CamelModel):
+    """Result of an XRPL Credentials (XLS-70) KYC lookup for the receiver.
+
+    `checked` is False when the credential layer is disabled. `verified` is True
+    only when the subject holds an *accepted*, non-expired credential of the
+    configured type issued by the trusted issuer.
+    """
+
+    checked: bool
+    verified: bool
+    subject: str | None = None
+    issuer: str | None = None
+    credential_type: str | None = None
+    expiration: datetime | None = None
+    uri: str | None = None
+    reason: str
+
+
 class ComplianceResult(CamelModel):
     aml_score: int  # 0–100
     sanctioned: bool
@@ -78,6 +105,7 @@ class ComplianceResult(CamelModel):
     explanation: str
     sanctions_matches: list[SanctionsMatch] = Field(default_factory=list)
     public_intel: PublicIntelResult | None = None
+    credential: CredentialStatus | None = None
 
 
 class PolicyDecision(CamelModel):
