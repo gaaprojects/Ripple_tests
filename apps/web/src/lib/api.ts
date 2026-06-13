@@ -11,15 +11,20 @@ const DEFAULT_API_BASE_URL = "http://localhost:8000";
 const RAILWAY_API_BASE_URL = "https://api-production-c47fd.up.railway.app";
 
 function getApiBaseUrl(): string {
+  // Explicit build-time override always wins (set VITE_API_BASE_URL in the
+  // Cloudflare Pages / hosting build environment).
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
 
-  if (
-    typeof window !== "undefined" &&
-    window.location.hostname === "web-production-cba3.up.railway.app"
-  ) {
-    return RAILWAY_API_BASE_URL;
+  // Any deployed (non-localhost) origin — Railway, Cloudflare Pages, a custom
+  // domain — talks to the Railway API. Only local dev falls back to localhost.
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const isLocal = host === "localhost" || host === "127.0.0.1" || host === "";
+    if (!isLocal) {
+      return RAILWAY_API_BASE_URL;
+    }
   }
 
   return DEFAULT_API_BASE_URL;

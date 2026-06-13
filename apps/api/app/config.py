@@ -66,9 +66,10 @@ class Settings(BaseSettings):
         "https://web-production-cba3.up.railway.app"
     )
 
-    # Railway preview/prod service hosts. Keep explicit origins above for the
-    # main demo URL; this catches regenerated Railway domains during rehearsals.
-    cors_origin_regex: str = r"https://.*\.(up\.railway\.app|railway\.app)"
+    # Railway preview/prod service hosts plus Cloudflare Pages (*.pages.dev).
+    # Keep explicit origins above for the main demo URL; this catches
+    # regenerated Railway/Pages domains during rehearsals.
+    cors_origin_regex: str = r"https://.*\.(up\.railway\.app|railway\.app|pages\.dev)"
 
     # Injected by Railway. When the web service URL changes, include it without
     # requiring a manual CORS_ORIGINS update during rehearsal.
