@@ -1,14 +1,21 @@
 {
-  "name": "ripple_tests",
-  "version": "1.0.0",
+  "name": "swisshacks-treasury-agent",
+  "version": "0.1.0",
   "private": true,
-  "type": "module",
+  "description": "Autonomous Treasury Agent with Firefly hardware veto on XRPL — SwissHacks 2026",
+  "workspaces": [
+    "apps/web",
+    "apps/firefly-bridge",
+    "packages/shared"
+  ],
   "scripts": {
-    "fund": "node fund-wallet.js",
-    "send": "node send-payment.js"
+    "dev:web": "npm run dev --workspace apps/web",
+    "dev:bridge": "npm run dev --workspace apps/firefly-bridge",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:api": "echo 'Run the Python API from apps/api — see apps/api/README.md'"
   },
-  "dependencies": {
-    "dotenv": "^16.4.7",
-    "xrpl": "^4.2.5"
+  "engines": {
+    "node": ">=20"
   }
 }
