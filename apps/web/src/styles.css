@@ -1079,6 +1079,34 @@ a {
   color: var(--orange);
 }
 
+.kyc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kyc-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--orange);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.kyc-badge.verified {
+  background: var(--orange);
+  color: var(--paper);
+}
+
+.kyc-badge.missing {
+  background: transparent;
+  color: var(--orange);
+}
+
 .error,
 .tamper-error {
   padding: 12px;
