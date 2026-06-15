@@ -1,0 +1,265 @@
+vars: {
+  d2-config: {
+    theme-id: 0
+  }
+}
+
+direction: down
+
+title: |md
+  ## Ripple Treasury Agent — Detailed Component Architecture
+| {
+  near: top-center
+}
+
+railway: Railway Cloud {
+  style.fill: "#F8FAFF"
+  style.stroke: "#3B82F6"
+  style.stroke-width: 2
+  style.border-radius: 12
+
+  web: Web Layer (React / Vite) {
+    style.fill: "#EFF6FF"
+    style.stroke: "#2563EB"
+    style.border-radius: 8
+
+    dashboard: DashboardPage {
+      shape: page
+      style.fill: "#DBEAFE"
+      style.stroke: "#3B82F6"
+    }
+    transfer: TransferPage {
+      shape: page
+      style.fill: "#DBEAFE"
+      style.stroke: "#3B82F6"
+    }
+    credentials: CredentialsPage {
+      shape: page
+      style.fill: "#DBEAFE"
+      style.stroke: "#3B82F6"
+    }
+    payment_card: PaymentCard {
+      shape: rectangle
+      style.fill: "#DBEAFE"
+      style.stroke: "#3B82F6"
+    }
+    lib_firefly: "lib/firefly.ts" {
+      shape: document
+      style.fill: "#DBEAFE"
+      style.stroke: "#6366F1"
+    }
+  }
+
+  api: API Layer (FastAPI) {
+    style.fill: "#F0FDF4"
+    style.stroke: "#16A34A"
+    style.border-radius: 8
+
+    routes: HTTP Routes {
+      style.fill: "#DCFCE7"
+      style.stroke: "#15803D"
+
+      payments_route: "/payments" {
+        shape: rectangle
+        style.fill: "#BBF7D0"
+        style.stroke: "#15803D"
+      }
+      creds_route: "/credentials" {
+        shape: rectangle
+        style.fill: "#BBF7D0"
+        style.stroke: "#15803D"
+      }
+    }
+
+    agents: "Orchestrators (LLM — narrate only)" {
+      style.fill: "#FFFBEB"
+      style.stroke: "#D97706"
+      style.border-radius: 8
+
+      treasury: "Treasury\nOrchestrator" {
+        style.fill: "#FEF9C3"
+        style.stroke: "#CA8A04"
+      }
+      cred_agent: "Credential\nAgent" {
+        style.fill: "#FEF9C3"
+        style.stroke: "#CA8A04"
+      }
+    }
+
+    policy: "Policy Engine (Deterministic — no LLM)" {
+      style.fill: "#FEF2F2"
+      style.stroke: "#DC2626"
+      style.stroke-width: 3
+      style.border-radius: 8
+
+      engine: "policy/engine.py" {
+        shape: rectangle
+        style.fill: "#FECACA"
+        style.stroke: "#DC2626"
+        style.bold: true
+      }
+    }
+
+    tools: Deterministic Tools {
+      style.fill: "#F5F3FF"
+      style.stroke: "#7C3AED"
+      style.border-radius: 8
+
+      routing: "routing.py\n(FX + pathfind)" {
+        shape: rectangle
+        style.fill: "#EDE9FE"
+        style.stroke: "#7C3AED"
+      }
+      compliance: "compliance.py\n(Sanctions + AML)" {
+        shape: rectangle
+        style.fill: "#EDE9FE"
+        style.stroke: "#7C3AED"
+      }
+      execution: "execution.py\n(Payment / Escrow)" {
+        shape: rectangle
+        style.fill: "#EDE9FE"
+        style.stroke: "#7C3AED"
+      }
+      firefly_tool: "firefly.py\n(sig verify)" {
+        shape: rectangle
+        style.fill: "#EDE9FE"
+        style.stroke: "#7C3AED"
+      }
+      creds_tool: "credentials.py\n(XLS-70 KYC)" {
+        shape: rectangle
+        style.fill: "#EDE9FE"
+        style.stroke: "#7C3AED"
+      }
+      audit: "audit.py\n(LLM narration)" {
+        shape: rectangle
+        style.fill: "#FEF3C7"
+        style.stroke: "#D97706"
+      }
+      receipt: "receipt.py\n(sha256 hash)" {
+        shape: rectangle
+        style.fill: "#EDE9FE"
+        style.stroke: "#7C3AED"
+      }
+      public_intel: "public_intel.py\n(OSINT risk)" {
+        shape: rectangle
+        style.fill: "#EDE9FE"
+        style.stroke: "#7C3AED"
+      }
+    }
+
+    db: "PostgreSQL — Audit Trail" {
+      shape: cylinder
+      style.fill: "#DBEAFE"
+      style.stroke: "#2563EB"
+    }
+  }
+}
+
+local: "Local Machine (Never deployed to Railway)" {
+  style.fill: "#F0FDF4"
+  style.stroke: "#16A34A"
+  style.stroke-dash: 5
+  style.border-radius: 12
+
+  bridge: "Firefly Bridge\n(Node/Express :4747)" {
+    style.fill: "#DCFCE7"
+    style.stroke: "#15803D"
+  }
+  device: "Firefly Device\n(ESP32-C3)" {
+    shape: hexagon
+    style.fill: "#BBF7D0"
+    style.stroke: "#15803D"
+    style.stroke-width: 3
+  }
+}
+
+external: External Services {
+  style.fill: "#FFF7ED"
+  style.stroke: "#D97706"
+  style.border-radius: 12
+
+  xrpl: XRPL Testnet {
+    shape: cloud
+    style.fill: "#F5F3FF"
+    style.stroke: "#7C3AED"
+  }
+  opensanctions: OpenSanctions API {
+    shape: oval
+    style.fill: "#FEE2E2"
+    style.stroke: "#DC2626"
+  }
+  frankfurter: "Frankfurter FX API" {
+    shape: oval
+    style.fill: "#FEF3C7"
+    style.stroke: "#D97706"
+  }
+  openai: "OpenAI API\n(audit narration)" {
+    shape: oval
+    style.fill: "#F0FDF4"
+    style.stroke: "#16A34A"
+  }
+}
+
+shared: "packages/shared\n(TypeScript types)" {
+  shape: package
+  style.fill: "#F1F5F9"
+  style.stroke: "#64748B"
+  style.stroke-dash: 3
+}
+
+# Web → API
+railway.web.dashboard -> railway.api.routes.payments_route: GET /payments
+railway.web.transfer -> railway.api.routes.payments_route: POST /payments
+railway.web.credentials -> railway.api.routes.creds_route: POST /credentials
+railway.web.payment_card -> railway.api.routes.payments_route: POST /release
+railway.web.lib_firefly -> local.bridge: "localhost:4747 approval"
+
+# Routes → Agents
+railway.api.routes.payments_route -> railway.api.agents.treasury: trigger
+railway.api.routes.creds_route -> railway.api.agents.cred_agent: trigger
+
+# Orchestrator → Policy (ALWAYS, hardcoded boundary)
+railway.api.agents.treasury -> railway.api.policy.engine: evaluate() {
+  style.stroke: "#DC2626"
+  style.stroke-width: 3
+}
+
+# Orchestrator → Tools (in order)
+railway.api.agents.treasury -> railway.api.tools.routing: "1. get_fx_path()"
+railway.api.agents.treasury -> railway.api.tools.compliance: "2. check_compliance()"
+railway.api.agents.treasury -> railway.api.tools.execution: "4. execute / lock"
+railway.api.agents.treasury -> railway.api.tools.audit: "5. write_audit()"
+railway.api.agents.treasury -> railway.api.tools.receipt: "6. compute_hash()"
+railway.api.agents.treasury -> railway.api.tools.firefly_tool: release verify
+
+# Policy → Execution gate
+railway.api.policy.engine -> railway.api.tools.execution: "3. policy decision" {
+  style.stroke: "#DC2626"
+  style.stroke-width: 2
+  style.stroke-dash: 3
+}
+
+# Credential agent
+railway.api.agents.cred_agent -> railway.api.tools.compliance: sanctions check
+railway.api.agents.cred_agent -> railway.api.tools.creds_tool: issue / verify
+
+# Tools → External
+railway.api.tools.routing -> external.xrpl: ripple_path_find
+railway.api.tools.routing -> external.frankfurter: FX rate
+railway.api.tools.compliance -> external.opensanctions: screen
+railway.api.tools.execution -> external.xrpl: "Payment / EscrowCreate / EscrowFinish"
+railway.api.tools.creds_tool -> external.xrpl: "CredentialCreate / Verify (XLS-70)"
+railway.api.tools.audit -> external.openai: LLM narration
+
+# DB writes
+railway.api.agents.treasury -> railway.api.db: full audit trail
+railway.api.agents.cred_agent -> railway.api.db: credential records
+
+# Firefly hardware flow
+local.bridge -> local.device: display + button
+local.device -> local.bridge: secp256k1 sig
+railway.api.tools.firefly_tool -> local.bridge: "sig verification (eth_keys)"
+
+# Shared types
+shared -> railway.web: TS types
+shared -> local.bridge: TS types
