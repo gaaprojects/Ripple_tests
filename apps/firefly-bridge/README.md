@@ -8,8 +8,11 @@ releasing funds.
 
 ## How it works
 
-1. The dashboard fetches the approval challenge (a digest) from the API.
-2. It POSTs `{ paymentId, digest }` to `http://localhost:4747/sign`.
+1. The dashboard POSTs the actual payment fields
+   `{ paymentId, amount, currency, dest, reference }` to
+   `http://localhost:4747/sign` — not a server-derived hash.
+2. The bridge **derives the digest locally** from those fields (WYSIWYS), so the
+   device signs exactly what the operator sees; every shown field is bound in.
 3. The Firefly **displays the request and waits for the physical button press**,
    then returns a secp256k1 signature.
 4. The dashboard sends the signature to the API, which verifies it against the

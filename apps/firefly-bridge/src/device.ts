@@ -19,12 +19,14 @@ export interface FireflyDevice {
 
 /**
  * Canonical payload format — MUST stay identical to Python firefly.py:
- *   f"{payment_id}|{amount:.2f}|{currency}|{dest}"
+ *   f"{payment_id}|{amount:.2f}|{currency}|{dest}|{reference}"
  *
- * Any change here must be mirrored in apps/api/app/tools/firefly.py.
+ * Every field the device shows the operator (including the reference) is bound
+ * into the signature, so tampering with any of them after signing fails
+ * verification. Any change here must be mirrored in apps/api/app/tools/firefly.py.
  */
 export function deriveDigest(req: BridgeSignRequest): string {
-  const canonical = `${req.paymentId}|${req.amount.toFixed(2)}|${req.currency}|${req.dest}`;
+  const canonical = `${req.paymentId}|${req.amount.toFixed(2)}|${req.currency}|${req.dest}|${req.reference}`;
   const hash = sha256(new TextEncoder().encode(canonical));
   return Buffer.from(hash).toString("hex");
 }

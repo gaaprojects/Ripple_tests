@@ -39,8 +39,12 @@ app.get("/health", (_req, res) => {
 
 app.post("/sign", async (req, res) => {
   const body = req.body as BridgeSignRequest;
-  if (!body?.paymentId || !body?.amount || !body?.currency || !body?.dest) {
-    res.status(400).json({ error: "paymentId, amount, currency, and dest are required" });
+  // `reference` is part of the signed payload (WYSIWYS), so it must be present —
+  // but an empty string is valid and must match the Python canonical payload.
+  if (!body?.paymentId || !body?.amount || !body?.currency || !body?.dest || body?.reference == null) {
+    res
+      .status(400)
+      .json({ error: "paymentId, amount, currency, dest, and reference are required" });
     return;
   }
   // Print what the device is being asked to approve — stand-in for the hardware screen.
