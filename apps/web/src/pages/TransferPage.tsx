@@ -29,26 +29,31 @@ export function TransferPage({
   onTamperRetry,
 }: Props) {
   return (
-    <>
+    <div className="transfer-layout">
       <NewPaymentForm onSubmit={onSubmit} disabled={busy} />
 
-      <section className="queue">
-        <h2>Payments</h2>
-        {payments.length === 0 && <p className="muted">No payments yet.</p>}
-        {payments.map((payment) => (
-          <PaymentCard
-            key={payment.id}
-            payment={payment}
-            onApprove={onApprove}
-            approving={approvingId === payment.id}
-            onResolveKyc={onResolveKyc}
-            resolvingKyc={resolvingKycId === payment.id}
-            onTamperRetry={onTamperRetry}
-            tampering={tamperedId === payment.id}
-            tamperError={tamperError[payment.id]}
-          />
-        ))}
-      </section>
-    </>
+      <aside className="transfer-audit">
+        <h2 className="transfer-audit-title">Audit trail</h2>
+        {payments.length === 0 ? (
+          <p className="muted">No payments yet.</p>
+        ) : (
+          <div className="transfer-audit-list">
+            {payments.map((payment) => (
+              <PaymentCard
+                key={payment.id}
+                payment={payment}
+                onApprove={onApprove}
+                approving={approvingId === payment.id}
+                onResolveKyc={onResolveKyc}
+                resolvingKyc={resolvingKycId === payment.id}
+                onTamperRetry={onTamperRetry}
+                tampering={tamperedId === payment.id}
+                tamperError={tamperError[payment.id]}
+              />
+            ))}
+          </div>
+        )}
+      </aside>
+    </div>
   );
 }
