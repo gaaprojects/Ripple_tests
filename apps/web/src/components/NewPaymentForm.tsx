@@ -224,136 +224,146 @@ export function NewPaymentForm({ onSubmit, disabled }: Props) {
 
   return (
     <section className="send-flow" aria-label="Send payment">
-      <div className="send-topbar">
-        <div>
-          <span className="eyebrow">Send payment</span>
-          <h1>Move funds</h1>
+      <div className="send-left">
+        <div className="send-topbar">
+          <div>
+            <span className="eyebrow">Send payment</span>
+            <h1>Move funds</h1>
+          </div>
+          <span className="policy-pill">Live XRPL quote</span>
         </div>
-        <span className="policy-pill">Live XRPL quote</span>
-      </div>
 
-      <div className="account-row">
-        <label>
-          <span>From</span>
-          <select value={senderIndex} onChange={(event) => setSenderIndex(Number(event.target.value))} disabled={disabled}>
-            {SENDERS.map((option, index) => (
-              <option key={option.account} value={index}>
-                {option.label} - {option.owner}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>Saved recipient</span>
-          <select value={recipientIndex} onChange={(event) => setRecipientIndex(Number(event.target.value))} disabled={disabled}>
-            {RECIPIENTS.map((option, index) => (
-              <option key={option.account} value={index}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <div className="amount-stage">
-        <p className="balance">Available balance {money(sender.balance, currency)}</p>
-        <div className="amount-display" aria-live="polite">
-          {money(amount, currency)}
-        </div>
-        <div className="currency-switch" aria-label="Currency">
-          {CURRENCIES.map((option) => (
-            <button
-              key={option}
-              type="button"
-              className={currency === option ? "active" : ""}
-              onClick={() => setCurrency(option)}
-              disabled={disabled}
-            >
-              {option === "XRP" ? "Ripple" : option}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <section className="recipient-panel" aria-label="Recipient details">
-        <div className="section-heading">
-          <span className="eyebrow">Receive method</span>
-          <strong>Wallet destination</strong>
-        </div>
-        <label>
-          <span>Recipient name</span>
-          <input value={recipientName} onChange={(event) => setRecipientName(event.target.value)} disabled={disabled} />
-        </label>
-        <label>
-          <span>Wallet address</span>
-          <input value={recipientWallet} onChange={(event) => setRecipientWallet(event.target.value)} disabled={disabled} spellCheck={false} />
-        </label>
-        <div className="recipient-meta">
+        <div className="send-from-to">
           <label>
-            <span>Country</span>
-            <input value={recipientCountry} onChange={(event) => setRecipientCountry(event.target.value)} disabled={disabled} maxLength={2} />
+            <span>From</span>
+            <select value={senderIndex} onChange={(event) => setSenderIndex(Number(event.target.value))} disabled={disabled}>
+              {SENDERS.map((option, index) => (
+                <option key={option.account} value={index}>
+                  {option.label} - {option.owner}
+                </option>
+              ))}
+            </select>
           </label>
+          <span className="send-arrow" aria-hidden="true">
+            &rarr;
+          </span>
           <label>
-            <span>Type</span>
-            <select value={recipientEntityType} onChange={(event) => setRecipientEntityType(event.target.value as "company" | "individual")} disabled={disabled}>
-              <option value="company">Company</option>
-              <option value="individual">Individual</option>
+            <span>To</span>
+            <select value={recipientIndex} onChange={(event) => setRecipientIndex(Number(event.target.value))} disabled={disabled}>
+              {RECIPIENTS.map((option, index) => (
+                <option key={option.account} value={index}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </label>
         </div>
-      </section>
 
-      <label className="reference-field">
-        <span>Reference</span>
-        <input value={reference} onChange={(event) => setReference(event.target.value)} disabled={disabled} />
-      </label>
-
-      <label className="reference-field">
-        <span>Purpose</span>
-        <select value={purpose} onChange={(event) => setPurpose(event.target.value)} disabled={disabled}>
-          <option value="supplier_payment">Supplier payment</option>
-          <option value="vendor_invoice">Vendor invoice</option>
-          <option value="treasury_transfer">Treasury transfer</option>
-          <option value="payroll">Payroll</option>
-        </select>
-      </label>
-
-      <section className="transaction-summary" aria-label="Transaction summary">
-        <div className="section-heading">
-          <span className="eyebrow">Transaction summary</span>
-          <strong>{quoteAge(quoteUpdatedAt)}</strong>
-        </div>
-        <div className="summary-list">
-          <div>
-            <span>Exchange rate</span>
-            <strong>{formatRate(routeQuote, currency)}</strong>
+        <div className="amount-stage">
+          <p className="balance">Available balance {money(sender.balance, currency)}</p>
+          <div className="amount-display" aria-live="polite">
+            {money(amount, currency)}
           </div>
-          <div>
-            <span>Estimated network fee</span>
-            <strong>{money(networkFee, "USD")}</strong>
-          </div>
-          <div>
-            <span>Recipient gets after routing</span>
-            <strong>{money(receiveAmount, "USD")}</strong>
-          </div>
-          <div>
-            <span>Wallet</span>
-            <strong>{recipientWallet ? recipientWallet.slice(0, 18) : "Missing"}...</strong>
+          <div className="currency-switch" aria-label="Currency">
+            {CURRENCIES.map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={currency === option ? "active" : ""}
+                onClick={() => setCurrency(option)}
+                disabled={disabled}
+              >
+                {option === "XRP" ? "Ripple" : option}
+              </button>
+            ))}
           </div>
         </div>
-        {quoteError && <p className="quote-error">Live rate unavailable. The payment will retry the quote on submit.</p>}
-      </section>
 
-      <button className="primary-action" type="button" disabled={!canReview} onClick={() => setStep("review")}>
-        Review
-      </button>
+        <section className="recipient-panel" aria-label="Recipient details">
+          <div className="section-heading">
+            <span className="eyebrow">Receive method</span>
+            <strong>Wallet destination</strong>
+          </div>
+          <div className="recipient-fields">
+            <label>
+              <span>Recipient name</span>
+              <input value={recipientName} onChange={(event) => setRecipientName(event.target.value)} disabled={disabled} />
+            </label>
+            <label className="wallet-field">
+              <span>Wallet address</span>
+              <input value={recipientWallet} onChange={(event) => setRecipientWallet(event.target.value)} disabled={disabled} spellCheck={false} />
+            </label>
+            <div className="recipient-meta">
+              <label>
+                <span>Country</span>
+                <input value={recipientCountry} onChange={(event) => setRecipientCountry(event.target.value)} disabled={disabled} maxLength={2} />
+              </label>
+              <label>
+                <span>Type</span>
+                <select value={recipientEntityType} onChange={(event) => setRecipientEntityType(event.target.value as "company" | "individual")} disabled={disabled}>
+                  <option value="company">Company</option>
+                  <option value="individual">Individual</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </section>
 
-      <div className="numpad" aria-label="Amount keypad">
-        {NUMPAD.map((key) => (
-          <button key={key} type="button" disabled={disabled} onClick={() => setAmountInput((current) => appendDigit(current, key))}>
-            {key === "backspace" ? "Del" : key}
-          </button>
-        ))}
+        <div className="send-ref-purpose">
+          <label className="reference-field">
+            <span>Reference</span>
+            <input value={reference} onChange={(event) => setReference(event.target.value)} disabled={disabled} />
+          </label>
+          <label className="reference-field">
+            <span>Purpose</span>
+            <select value={purpose} onChange={(event) => setPurpose(event.target.value)} disabled={disabled}>
+              <option value="supplier_payment">Supplier payment</option>
+              <option value="vendor_invoice">Vendor invoice</option>
+              <option value="treasury_transfer">Treasury transfer</option>
+              <option value="payroll">Payroll</option>
+            </select>
+          </label>
+        </div>
+
+        <button className="primary-action" type="button" disabled={!canReview} onClick={() => setStep("review")}>
+          Review
+        </button>
+      </div>
+
+      <div className="send-right">
+        <section className="transaction-summary" aria-label="Transaction summary">
+          <div className="section-heading">
+            <span className="eyebrow">Transaction summary</span>
+            <strong>{quoteAge(quoteUpdatedAt)}</strong>
+          </div>
+          <div className="summary-list">
+            <div>
+              <span>Exchange rate</span>
+              <strong>{formatRate(routeQuote, currency)}</strong>
+            </div>
+            <div>
+              <span>Estimated network fee</span>
+              <strong>{money(networkFee, "USD")}</strong>
+            </div>
+            <div>
+              <span>Recipient gets after routing</span>
+              <strong>{money(receiveAmount, "USD")}</strong>
+            </div>
+            <div>
+              <span>Wallet</span>
+              <strong>{recipientWallet ? recipientWallet.slice(0, 18) : "Missing"}...</strong>
+            </div>
+          </div>
+          {quoteError && <p className="quote-error">Live rate unavailable. The payment will retry the quote on submit.</p>}
+        </section>
+
+        <div className="numpad" aria-label="Amount keypad">
+          {NUMPAD.map((key) => (
+            <button key={key} type="button" disabled={disabled} onClick={() => setAmountInput((current) => appendDigit(current, key))}>
+              {key === "backspace" ? "Del" : key}
+            </button>
+          ))}
+        </div>
       </div>
 
       {step === "review" && (

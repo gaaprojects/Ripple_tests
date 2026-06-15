@@ -80,6 +80,7 @@ export function CredentialsPage() {
 
   return (
     <section className="send-flow" aria-label="Credential issuing agent">
+      <div className="send-left">
       <div className="send-topbar">
         <div>
           <span className="eyebrow">Credential agent</span>
@@ -187,6 +188,7 @@ export function CredentialsPage() {
           </article>
         ))}
       </section>
+      </div>
     </section>
   );
 }
