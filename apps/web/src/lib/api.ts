@@ -1,5 +1,9 @@
 import type {
   AgentLogEntry,
+  CredentialIssueRequest,
+  CredentialLogEntry,
+  CredentialRecord,
+  CredentialStatus,
   Payment,
   PaymentIntent,
   QuoteRequest,
@@ -63,4 +67,16 @@ export const api = {
     }),
   getReceipt: (id: string) =>
     request<{ receipt: Receipt; receiptHash: string }>(`/payments/${id}/receipt`),
+
+  // Credential-issuing agent.
+  issueCredential: (req: CredentialIssueRequest) =>
+    request<CredentialRecord>("/credentials", { method: "POST", body: JSON.stringify(req) }),
+  listCredentials: () => request<CredentialRecord[]>("/credentials"),
+  getCredentialLogs: (id: string) => request<CredentialLogEntry[]>(`/credentials/${id}/logs`),
+  acceptCredential: (id: string) =>
+    request<CredentialRecord>(`/credentials/${id}/accept`, { method: "POST" }),
+  verifyCredential: (id: string) =>
+    request<CredentialRecord>(`/credentials/${id}/verify`, { method: "POST" }),
+  verifySubject: (subject: string) =>
+    request<CredentialStatus>(`/credentials/verify/${subject}`),
 };

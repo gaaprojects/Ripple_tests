@@ -3,13 +3,16 @@ import type { Payment, PaymentIntent } from "@treasury/shared";
 
 import { api } from "./lib/api.js";
 import { signOnFirefly } from "./lib/firefly.js";
+import { CredentialsPage } from "./pages/CredentialsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { TransferPage } from "./pages/TransferPage.js";
 
-type Route = "/" | "/transfer";
+type Route = "/" | "/transfer" | "/credentials";
 
 function currentRoute(): Route {
-  return window.location.pathname === "/transfer" ? "/transfer" : "/";
+  if (window.location.pathname === "/transfer") return "/transfer";
+  if (window.location.pathname === "/credentials") return "/credentials";
+  return "/";
 }
 
 export function App() {
@@ -17,6 +20,7 @@ export function App() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [busy, setBusy] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [resolvingKycId, setResolvingKycId] = useState<string | null>(null);
   const [tamperedId, setTamperedId] = useState<string | null>(null);
   const [tamperError, setTamperError] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +44,8 @@ export function App() {
   }, []);
 
   const navigate = useCallback((path: string) => {
-    const nextRoute: Route = path === "/transfer" ? "/transfer" : "/";
+    const nextRoute: Route =
+      path === "/transfer" ? "/transfer" : path === "/credentials" ? "/credentials" : "/";
     if (window.location.pathname !== nextRoute) {
       window.history.pushState({}, "", nextRoute);
     }
@@ -90,6 +95,34 @@ export function App() {
     [refresh],
   );
 
+  // Inline KYC gate: issue + accept an XLS-70 credential for the receiver, then
+  // resubmit the same intent. Policy is re-evaluated deterministically — issuing
+  // a credential only removes the KYC risk flag; a large amount still escalates.
+  const resolveKyc = useCallback(
+    async (payment: Payment) => {
+      setResolvingKycId(payment.id);
+      setError(null);
+      try {
+        const record = await api.issueCredential({
+          subject: payment.intent.to,
+          subjectName: payment.intent.receiverName,
+          autoAccept: true,
+        });
+        if (record.status === "refused" || record.status === "failed") {
+          setError(record.refusedReason ?? "Credential could not be issued.");
+          return;
+        }
+        await api.createPayment(payment.intent);
+        await refresh();
+      } catch (cause) {
+        setError(String(cause));
+      } finally {
+        setResolvingKycId(null);
+      }
+    },
+    [refresh],
+  );
+
   const tamperAndRetry = useCallback(async (payment: Payment) => {
     if (!payment.approvalSignature) return;
     setTamperedId(payment.id);
@@ -120,25 +153,39 @@ export function App() {
           <button className={route === "/transfer" ? "active" : ""} type="button" onClick={() => navigate("/transfer")}>
             Transfer
           </button>
+          <button className={route === "/credentials" ? "active" : ""} type="button" onClick={() => navigate("/credentials")}>
+            Credentials
+          </button>
         </div>
       </nav>
       <p className="tagline">Autonomous treasury on XRPL. The AI explains; deterministic code decides.</p>
       {error && <p className="error">{error}</p>}
 
-      {route === "/" ? (
-        <DashboardPage payments={payments} approvingId={approvingId} onApprove={approve} onNavigate={navigate} />
-      ) : (
+      {route === "/" && (
+        <DashboardPage
+          payments={payments}
+          approvingId={approvingId}
+          resolvingKycId={resolvingKycId}
+          onApprove={approve}
+          onResolveKyc={resolveKyc}
+          onNavigate={navigate}
+        />
+      )}
+      {route === "/transfer" && (
         <TransferPage
           payments={payments}
           busy={busy}
           approvingId={approvingId}
+          resolvingKycId={resolvingKycId}
           tamperedId={tamperedId}
           tamperError={tamperError}
           onSubmit={submit}
           onApprove={approve}
+          onResolveKyc={resolveKyc}
           onTamperRetry={tamperAndRetry}
         />
       )}
+      {route === "/credentials" && <CredentialsPage />}
 
       {approvingId && (
         <div className="firefly-overlay" role="status" aria-live="polite">

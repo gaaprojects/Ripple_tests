@@ -90,6 +90,7 @@ CREDENTIAL_KYC_ENABLED=true
 CREDENTIAL_TYPE=KYC
 CREDENTIAL_ISSUER_SEED=sEd...        # issuer that signs CredentialCreate
 CREDENTIAL_ISSUER_ADDRESS=r...       # verified against; same issuer
+CREDENTIAL_SUBJECT_SEED=sEd...       # subject that signs CredentialAccept (demo only)
 ```
 
 Flow:
@@ -103,6 +104,31 @@ Flow:
 
 Requires the Credentials amendment. If `CredentialCreate` fails with an
 amendment/unknown-transaction error, switch `XRPL_ENDPOINT` to Devnet.
+
+### Credential-issuing agent (run the full lifecycle from the API/UI)
+
+A second agent (`app/agents/credential_agent.py`, routes under `/credentials`,
+UI tab **Credentials**) drives issue → accept → verify and narrates each step.
+Whether a subject may be issued a credential is a **deterministic sanctions
+screen** inside the agent — never the LLM.
+
+To prove it on Testnet (with `USE_MOCK_XRPL=false` and the seeds above):
+
+```bash
+# 1. Issue (treasury signs CredentialCreate) — returns a record with txHash
+curl -X POST $API/credentials -H 'content-type: application/json' \
+  -d '{"subject":"r<subject>","subjectName":"Vendor Alpha","credentialType":"KYC","uri":"https://kyc.example/vc/1"}'
+
+# 2. Accept (subject signs CredentialAccept, using CREDENTIAL_SUBJECT_SEED)
+curl -X POST $API/credentials/<recordId>/accept
+
+# 3. Verify (fresh on-ledger lookup; only accepted, non-expired credentials pass)
+curl -X POST $API/credentials/<recordId>/verify
+```
+
+A real submission returns `txHash` + `explorerUrl` on the create and accept
+steps. A payment to that subject then auto-settles (step 6 above), while an
+un-credentialed subject escalates — proving the credential gate end-to-end.
 
 ## 7. Verify
 

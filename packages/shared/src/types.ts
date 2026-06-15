@@ -71,6 +71,53 @@ export interface CredentialStatus {
   reason: string;
 }
 
+// Credential-issuing agent (XLS-70). Mirrors apps/api/app/schemas.py.
+export type CredentialRecordStatus =
+  | "issued"
+  | "accepted"
+  | "verified"
+  | "refused"
+  | "failed";
+
+export interface CredentialIssueRequest {
+  subject: string;
+  subjectName?: string | null;
+  credentialType?: string | null;
+  uri?: string | null;
+  expiration?: string | null;
+  note?: string | null;
+  // When true, the agent also runs the subject-side CredentialAccept so the
+  // credential is immediately usable (inline KYC gate).
+  autoAccept?: boolean;
+}
+
+export interface CredentialLogEntry {
+  recordId: string;
+  timestamp: string;
+  message: string;
+}
+
+export interface CredentialRecord {
+  id: string;
+  subject: string;
+  subjectName: string | null;
+  issuer: string | null;
+  credentialType: string | null;
+  uri: string | null;
+  expiration: string | null;
+  status: CredentialRecordStatus;
+  accepted: boolean;
+  verified: boolean;
+  refusedReason: string | null;
+  txHash: string | null;
+  explorerUrl: string | null;
+  acceptTxHash: string | null;
+  acceptExplorerUrl: string | null;
+  auditExplanation: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ComplianceResult {
   amlScore: number; // 0–100
   sanctioned: boolean;

@@ -34,6 +34,16 @@ from ..schemas import CredentialStatus
 # demonstrated offline. Everyone else is considered verified in the mock.
 MOCK_UNVERIFIED_SUBJECTS = {"rUNVERIFIED00000000000000000000000"}
 
+# Credentials accepted during this mock session, keyed by (subject, issuer, type).
+# Lets the inline KYC gate work offline: after the agent issues + accepts a
+# credential for an un-KYC'd subject, verify_kyc flips it to verified.
+_MOCK_ACCEPTED: set[tuple[str, str, str]] = set()
+
+
+def reset_mock_state() -> None:
+    """Clear mock-accepted credentials (used by tests for isolation)."""
+    _MOCK_ACCEPTED.clear()
+
 
 async def verify_kyc(subject: str) -> CredentialStatus:
     """Verify the subject holds a valid KYC credential from the trusted issuer."""
@@ -101,14 +111,17 @@ async def verify_kyc(subject: str) -> CredentialStatus:
 
 
 async def issue_credential(
-    subject: str, uri: str | None = None, expiration: datetime | None = None
+    subject: str,
+    uri: str | None = None,
+    expiration: datetime | None = None,
+    credential_type: str | None = None,
 ) -> dict:
     """Issue a KYC credential to `subject` (CredentialCreate).
 
     The subject must accept it before it verifies. Returns the submission result.
     """
     settings = get_settings()
-    credential_type = settings.credential_type
+    credential_type = credential_type or settings.credential_type
 
     if settings.use_mock_xrpl:
         return {
@@ -152,8 +165,67 @@ async def issue_credential(
     }
 
 
+async def accept_credential(
+    subject: str,
+    issuer: str | None = None,
+    credential_type: str | None = None,
+    subject_seed: str | None = None,
+) -> dict:
+    """Subject-side CredentialAccept: the subject accepts a credential issued to it.
+
+    A credential only becomes usable once accepted (lsfAccepted). On a real
+    network the subject must sign this themselves; for Testnet demos the subject
+    seed is read from config (`CREDENTIAL_SUBJECT_SEED`) or passed explicitly —
+    never accept a subject seed over a public HTTP body in production.
+    """
+    settings = get_settings()
+    issuer = issuer or settings.credential_issuer_address or settings.token_issuer_address
+    credential_type = credential_type or settings.credential_type
+
+    if settings.use_mock_xrpl:
+        _MOCK_ACCEPTED.add((subject, issuer, credential_type))
+        return {
+            "txHash": _mock_hash("accept", subject),
+            "subject": subject,
+            "issuer": issuer,
+            "credentialType": credential_type,
+            "explorerUrl": None,
+            "accepted": True,
+        }
+
+    seed = subject_seed or settings.credential_subject_seed
+    if not seed:
+        raise NotImplementedError(
+            "CREDENTIAL_SUBJECT_SEED (or an explicit subject_seed) is required to accept"
+        )
+
+    from xrpl.asyncio.transaction import submit_and_wait
+    from xrpl.models.transactions import CredentialAccept
+    from xrpl.wallet import Wallet
+
+    wallet = Wallet.from_seed(seed)
+    tx = CredentialAccept(
+        account=wallet.address,
+        issuer=issuer,
+        credential_type=xrpl_client.credential_type_hex(credential_type),
+    )
+    async with xrpl_client.async_client() as client:
+        result = await submit_and_wait(tx, client, wallet)
+
+    tx_hash = result.result["hash"]
+    return {
+        "txHash": tx_hash,
+        "subject": wallet.address,
+        "issuer": issuer,
+        "credentialType": credential_type,
+        "explorerUrl": xrpl_client.explorer_tx_url(tx_hash),
+        "accepted": True,
+    }
+
+
 def _mock_verify(subject: str, issuer: str, credential_type: str) -> CredentialStatus:
-    verified = subject not in MOCK_UNVERIFIED_SUBJECTS
+    accepted = (subject, issuer, credential_type) in _MOCK_ACCEPTED
+    verified = accepted or subject not in MOCK_UNVERIFIED_SUBJECTS
     return CredentialStatus(
         checked=True,
         verified=verified,
