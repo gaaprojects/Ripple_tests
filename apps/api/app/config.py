@@ -22,7 +22,6 @@ class Settings(BaseSettings):
 
     xrpl_endpoint: str = "wss://s.altnet.rippletest.net:51233"
     treasury_wallet_seed: str = ""
-    release_wallet_seed: str = ""
     token_issuer_address: str = ""
     token_currency: str = "USD"
 

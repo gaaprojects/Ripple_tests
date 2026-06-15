@@ -53,18 +53,34 @@ app/
   models.py          SQLAlchemy target schema for the audit store
   xrpl_client.py     XRPL helpers (explorer URLs, ripple_path_find, credential lookup)
   policy/engine.py   THE policy boundary — deterministic, tested
-  agents/orchestrator.py   workflow: calls tools in order, narrates
-  tools/             routing, compliance, credentials, execution, firefly, audit
-  routes/            health, payments
-tests/               policy, compliance, execution, routing, credentials tests
+  agents/            orchestrator (payment workflow) + credential_agent (XLS-70)
+  tools/             routing, compliance, credentials, execution, firefly,
+                     public_intel, audit, receipt
+  routes/            health, payments, credentials
+scripts/smoke_xrpl.py   one-shot XRPL connectivity / payment smoke test
+tests/               policy, compliance, execution, routing, credentials,
+                     credential_agent, firefly, receipt tests
 ```
 
 ## Endpoints
 
 - `POST /payments` — submit an intent, run the workflow.
+- `POST /payments/quote` — deterministic FX quote preview for an amount/currency.
 - `GET /payments` — list payments.
 - `GET /payments/{id}` — one payment.
 - `GET /payments/{id}/logs` — agent log entries.
 - `GET /payments/{id}/challenge` — the digest the Firefly must sign.
 - `POST /payments/{id}/release` — submit a Firefly signature to release a locked
   payment. Verified server-side before EscrowFinish.
+- `POST /payments/{id}/release-tampered` — DEMO ONLY (requires `DEMO_MODE=true`);
+  proves a signature fails when payment details are altered. Always 403.
+- `GET /payments/{id}/receipt` — hash-anchored audit receipt (terminal payments).
+
+Credential-issuing agent (XLS-70):
+
+- `POST /credentials` — issue a credential (deterministic sanctions screen gates it).
+- `GET /credentials` / `GET /credentials/{id}` — list / fetch records.
+- `GET /credentials/{id}/logs` — per-record agent log.
+- `POST /credentials/{id}/accept` — subject-side `CredentialAccept`.
+- `POST /credentials/{id}/verify` — re-check the credential on-ledger.
+- `GET /credentials/verify/{subject}` — ad-hoc KYC lookup for any address.

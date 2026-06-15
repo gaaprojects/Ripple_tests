@@ -31,9 +31,6 @@ python scripts/smoke_xrpl.py fund            # creates + funds a wallet, prints 
 Run it 2–3 times to get a **treasury**, a **receiver**, and (for credentials) an
 **issuer** wallet. Copy the seeds/addresses.
 
-Alternatively, `cd apps/crypto/ripple_test_main && npm install && npm run fund`
-(writes a seed to that folder's local `.env`).
-
 ## 3. Configure the root `.env`
 
 ```bash
