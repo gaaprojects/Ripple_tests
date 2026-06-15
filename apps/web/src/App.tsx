@@ -162,7 +162,14 @@ export function App() {
       {error && <p className="error">{error}</p>}
 
       {route === "/" && (
-        <DashboardPage payments={payments} approvingId={approvingId} onApprove={approve} onNavigate={navigate} />
+        <DashboardPage
+          payments={payments}
+          approvingId={approvingId}
+          resolvingKycId={resolvingKycId}
+          onApprove={approve}
+          onResolveKyc={resolveKyc}
+          onNavigate={navigate}
+        />
       )}
       {route === "/transfer" && (
         <TransferPage
