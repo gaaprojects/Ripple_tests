@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
-from .routes import health, payments
+from .routes import credentials, health, payments
 
 app = FastAPI(title="Treasury Agent API", version="0.1.0")
 settings = get_settings()
@@ -29,3 +29,4 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(payments.router)
+app.include_router(credentials.router)

@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     credential_type: str = "KYC"
     credential_issuer_address: str = ""
     credential_issuer_seed: str = ""
+    # Subject-side seed used by the credential agent's accept step on Testnet
+    # (CredentialAccept must be signed by the subject). Demo/testing only; never
+    # commit a real seed. Left empty in production where subjects accept their own.
+    credential_subject_seed: str = ""
 
     frankfurter_base_url: str = "https://api.frankfurter.dev/v1"
 

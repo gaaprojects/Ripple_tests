@@ -3,13 +3,16 @@ import type { Payment, PaymentIntent } from "@treasury/shared";
 
 import { api } from "./lib/api.js";
 import { signOnFirefly } from "./lib/firefly.js";
+import { CredentialsPage } from "./pages/CredentialsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { TransferPage } from "./pages/TransferPage.js";
 
-type Route = "/" | "/transfer";
+type Route = "/" | "/transfer" | "/credentials";
 
 function currentRoute(): Route {
-  return window.location.pathname === "/transfer" ? "/transfer" : "/";
+  if (window.location.pathname === "/transfer") return "/transfer";
+  if (window.location.pathname === "/credentials") return "/credentials";
+  return "/";
 }
 
 export function App() {
@@ -40,7 +43,8 @@ export function App() {
   }, []);
 
   const navigate = useCallback((path: string) => {
-    const nextRoute: Route = path === "/transfer" ? "/transfer" : "/";
+    const nextRoute: Route =
+      path === "/transfer" ? "/transfer" : path === "/credentials" ? "/credentials" : "/";
     if (window.location.pathname !== nextRoute) {
       window.history.pushState({}, "", nextRoute);
     }
@@ -120,14 +124,18 @@ export function App() {
           <button className={route === "/transfer" ? "active" : ""} type="button" onClick={() => navigate("/transfer")}>
             Transfer
           </button>
+          <button className={route === "/credentials" ? "active" : ""} type="button" onClick={() => navigate("/credentials")}>
+            Credentials
+          </button>
         </div>
       </nav>
       <p className="tagline">Autonomous treasury on XRPL. The AI explains; deterministic code decides.</p>
       {error && <p className="error">{error}</p>}
 
-      {route === "/" ? (
+      {route === "/" && (
         <DashboardPage payments={payments} approvingId={approvingId} onApprove={approve} onNavigate={navigate} />
-      ) : (
+      )}
+      {route === "/transfer" && (
         <TransferPage
           payments={payments}
           busy={busy}
@@ -139,6 +147,7 @@ export function App() {
           onTamperRetry={tamperAndRetry}
         />
       )}
+      {route === "/credentials" && <CredentialsPage />}
 
       {approvingId && (
         <div className="firefly-overlay" role="status" aria-live="polite">

@@ -98,6 +98,69 @@ class CredentialStatus(CamelModel):
     reason: str
 
 
+class CredentialRecordStatus(str, Enum):
+    """Lifecycle of a credential issued by the credential-issuing agent.
+
+    issued    -> CredentialCreate submitted; subject has not accepted yet.
+    accepted  -> subject ran CredentialAccept; credential is now usable.
+    verified  -> a fresh on-ledger lookup confirmed an accepted, valid credential.
+    refused   -> deterministic screen blocked issuance (e.g. sanctioned subject).
+    failed    -> submission error.
+    """
+
+    issued = "issued"
+    accepted = "accepted"
+    verified = "verified"
+    refused = "refused"
+    failed = "failed"
+
+
+class CredentialIssueRequest(CamelModel):
+    """Input to the credential-issuing agent.
+
+    `credential_type`/`expiration`/`uri` fall back to configured defaults when
+    omitted. `uri` must point to off-chain verifiable-credential data — never PII
+    on-ledger. The decision to issue is deterministic (a sanctions screen), never
+    the LLM's; the agent only narrates.
+    """
+
+    subject: str
+    subject_name: str | None = None
+    credential_type: str | None = None
+    uri: str | None = None
+    expiration: datetime | None = None
+    note: str | None = None
+
+
+class CredentialLogEntry(CamelModel):
+    record_id: str
+    timestamp: datetime
+    message: str
+
+
+class CredentialRecord(CamelModel):
+    """Audit trail for one issued credential, mirroring the payment record shape."""
+
+    id: str
+    subject: str
+    subject_name: str | None = None
+    issuer: str | None = None
+    credential_type: str | None = None
+    uri: str | None = None
+    expiration: datetime | None = None
+    status: CredentialRecordStatus
+    accepted: bool = False
+    verified: bool = False
+    refused_reason: str | None = None
+    tx_hash: str | None = None
+    explorer_url: str | None = None
+    accept_tx_hash: str | None = None
+    accept_explorer_url: str | None = None
+    audit_explanation: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
 class ComplianceResult(CamelModel):
     aml_score: int  # 0–100
     sanctioned: bool

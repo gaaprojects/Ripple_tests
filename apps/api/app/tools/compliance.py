@@ -145,10 +145,21 @@ def _has_blocking_match(matches: list[SanctionsMatch], threshold: float) -> bool
 
 
 def _fallback_sanctioned(intent: PaymentIntent) -> bool:
-    return (
-        intent.to in SANCTIONED_ACCOUNTS
-        or intent.receiver_name.strip().lower() in SANCTIONED_NAMES
-    )
+    return is_sanctioned(intent.to, intent.receiver_name)
+
+
+def is_sanctioned(address: str, name: str | None = None) -> bool:
+    """Deterministic sanctions check for a single counterparty (address + name).
+
+    Used by the credential-issuing agent to refuse issuing a KYC credential to a
+    sanctioned subject. Code decides — never the LLM. Uses the local demo list;
+    swap for the OpenSanctions screen when a key is configured.
+    """
+    if address in SANCTIONED_ACCOUNTS:
+        return True
+    if name and name.strip().lower() in SANCTIONED_NAMES:
+        return True
+    return False
 
 
 def _score(sanctioned: bool, flag_count: int, amount: float, public_intel_score: int) -> int:

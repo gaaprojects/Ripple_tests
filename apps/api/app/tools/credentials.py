@@ -101,14 +101,17 @@ async def verify_kyc(subject: str) -> CredentialStatus:
 
 
 async def issue_credential(
-    subject: str, uri: str | None = None, expiration: datetime | None = None
+    subject: str,
+    uri: str | None = None,
+    expiration: datetime | None = None,
+    credential_type: str | None = None,
 ) -> dict:
     """Issue a KYC credential to `subject` (CredentialCreate).
 
     The subject must accept it before it verifies. Returns the submission result.
     """
     settings = get_settings()
-    credential_type = settings.credential_type
+    credential_type = credential_type or settings.credential_type
 
     if settings.use_mock_xrpl:
         return {
@@ -149,6 +152,63 @@ async def issue_credential(
         "uri": uri,
         "explorerUrl": xrpl_client.explorer_tx_url(tx_hash),
         "accepted": False,
+    }
+
+
+async def accept_credential(
+    subject: str,
+    issuer: str | None = None,
+    credential_type: str | None = None,
+    subject_seed: str | None = None,
+) -> dict:
+    """Subject-side CredentialAccept: the subject accepts a credential issued to it.
+
+    A credential only becomes usable once accepted (lsfAccepted). On a real
+    network the subject must sign this themselves; for Testnet demos the subject
+    seed is read from config (`CREDENTIAL_SUBJECT_SEED`) or passed explicitly —
+    never accept a subject seed over a public HTTP body in production.
+    """
+    settings = get_settings()
+    issuer = issuer or settings.credential_issuer_address or settings.token_issuer_address
+    credential_type = credential_type or settings.credential_type
+
+    if settings.use_mock_xrpl:
+        return {
+            "txHash": _mock_hash("accept", subject),
+            "subject": subject,
+            "issuer": issuer,
+            "credentialType": credential_type,
+            "explorerUrl": None,
+            "accepted": True,
+        }
+
+    seed = subject_seed or settings.credential_subject_seed
+    if not seed:
+        raise NotImplementedError(
+            "CREDENTIAL_SUBJECT_SEED (or an explicit subject_seed) is required to accept"
+        )
+
+    from xrpl.asyncio.transaction import submit_and_wait
+    from xrpl.models.transactions import CredentialAccept
+    from xrpl.wallet import Wallet
+
+    wallet = Wallet.from_seed(seed)
+    tx = CredentialAccept(
+        account=wallet.address,
+        issuer=issuer,
+        credential_type=xrpl_client.credential_type_hex(credential_type),
+    )
+    async with xrpl_client.async_client() as client:
+        result = await submit_and_wait(tx, client, wallet)
+
+    tx_hash = result.result["hash"]
+    return {
+        "txHash": tx_hash,
+        "subject": wallet.address,
+        "issuer": issuer,
+        "credentialType": credential_type,
+        "explorerUrl": xrpl_client.explorer_tx_url(tx_hash),
+        "accepted": True,
     }
 
 
