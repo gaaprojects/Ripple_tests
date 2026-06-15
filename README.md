@@ -16,6 +16,25 @@ for the brief, [`docs/architecture.md`](docs/architecture.md) for the design, an
 [`AGENTS.md`](AGENTS.md) for the tool/agent spec. [`CLAUDE.md`](CLAUDE.md) holds
 the conventions — including the one rule: the LLM never decides policy or signs.
 
+## Architecture
+
+### System Overview
+
+![System Overview](diagrams/architecture-simplified-light.svg#gh-light-mode-only)
+![System Overview](diagrams/architecture-simplified-dark.svg#gh-dark-mode-only)
+
+### Component Architecture
+
+![Component Architecture](diagrams/architecture-detailed-light.svg#gh-light-mode-only)
+![Component Architecture](diagrams/architecture-detailed-dark.svg#gh-dark-mode-only)
+
+### Payment Workflow
+
+![Payment Flow](diagrams/payment-flow-light.svg#gh-light-mode-only)
+![Payment Flow](diagrams/payment-flow-dark.svg#gh-dark-mode-only)
+
+> Full D2 source files and re-render instructions in [`diagrams/`](diagrams/).
+
 ## Repository layout
 
 ```
