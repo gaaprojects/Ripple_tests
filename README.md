@@ -20,18 +20,18 @@ the conventions — including the one rule: the LLM never decides policy or sign
 
 ### System Overview
 
-![System Overview](diagrams/architecture-simplified-light.svg#gh-light-mode-only)
-![System Overview](diagrams/architecture-simplified-dark.svg#gh-dark-mode-only)
+![System Overview](diagrams/architecture-simplified-light.png#gh-light-mode-only)
+![System Overview](diagrams/architecture-simplified-dark.png#gh-dark-mode-only)
 
 ### Component Architecture
 
-![Component Architecture](diagrams/architecture-detailed-light.svg#gh-light-mode-only)
-![Component Architecture](diagrams/architecture-detailed-dark.svg#gh-dark-mode-only)
+![Component Architecture](diagrams/architecture-detailed-light.png#gh-light-mode-only)
+![Component Architecture](diagrams/architecture-detailed-dark.png#gh-dark-mode-only)
 
 ### Payment Workflow
 
-![Payment Flow](diagrams/payment-flow-light.svg#gh-light-mode-only)
-![Payment Flow](diagrams/payment-flow-dark.svg#gh-dark-mode-only)
+![Payment Flow](diagrams/payment-flow-light.png#gh-light-mode-only)
+![Payment Flow](diagrams/payment-flow-dark.png#gh-dark-mode-only)
 
 > Full D2 source files and re-render instructions in [`diagrams/`](diagrams/).
 

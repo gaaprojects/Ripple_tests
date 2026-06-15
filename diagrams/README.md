@@ -10,7 +10,7 @@ High-level view: all deployed services, the local Firefly bridge, and external d
 
 | Light | Dark |
 |-------|------|
-| ![System Overview Light](architecture-simplified-light.svg) | ![System Overview Dark](architecture-simplified-dark.svg) |
+| ![System Overview Light](architecture-simplified-light.png) | ![System Overview Dark](architecture-simplified-dark.png) |
 
 **Key boundaries:**
 - **Railway Cloud** — API + Web Dashboard + PostgreSQL (deployed, public)
@@ -25,7 +25,7 @@ Every component inside the API, their call order, and connections to external se
 
 | Light | Dark |
 |-------|------|
-| ![Detailed Architecture Light](architecture-detailed-light.svg) | ![Detailed Architecture Dark](architecture-detailed-dark.svg) |
+| ![Detailed Architecture Light](architecture-detailed-light.png) | ![Detailed Architecture Dark](architecture-detailed-dark.png) |
 
 **Colour coding:**
 - 🟡 **Yellow** — LLM orchestrators (narrate only, never decide money)
@@ -42,7 +42,7 @@ All three payment paths through the system.
 
 | Light | Dark |
 |-------|------|
-| ![Payment Flow Light](payment-flow-light.svg) | ![Payment Flow Dark](payment-flow-dark.svg) |
+| ![Payment Flow Light](payment-flow-light.png) | ![Payment Flow Dark](payment-flow-dark.png) |
 
 **Three terminal states:**
 - **BLOCKED** — Sanctioned counterparty; no XRPL transaction, no hardware override possible
