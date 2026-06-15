@@ -1,0 +1,104 @@
+vars: {
+  d2-config: {
+    theme-id: 0
+  }
+}
+
+direction: right
+
+title: |md
+  ## Ripple Treasury Agent — System Overview
+  Autonomous cross-border payments with Firefly hardware veto on XRPL
+| {
+  near: top-center
+}
+
+operator: Treasury Operator {
+  shape: person
+  style.fill: "#FFF7ED"
+  style.stroke: "#D97706"
+  style.stroke-width: 2
+}
+
+railway: Railway Cloud {
+  style.fill: "#EFF6FF"
+  style.stroke: "#3B82F6"
+  style.stroke-width: 2
+  style.border-radius: 12
+
+  web: React Dashboard {
+    shape: rectangle
+    style.fill: "#DBEAFE"
+    style.stroke: "#2563EB"
+    style.border-radius: 8
+  }
+
+  api: "Treasury Orchestrator\n(FastAPI)" {
+    shape: rectangle
+    style.fill: "#DBEAFE"
+    style.stroke: "#2563EB"
+    style.border-radius: 8
+  }
+
+  db: "Audit Database\n(PostgreSQL)" {
+    shape: cylinder
+    style.fill: "#DBEAFE"
+    style.stroke: "#2563EB"
+  }
+}
+
+local: "Operator's Machine — Local Only" {
+  style.fill: "#F0FDF4"
+  style.stroke: "#16A34A"
+  style.stroke-width: 2
+  style.stroke-dash: 4
+  style.border-radius: 12
+
+  bridge: "Firefly Bridge\n(Node/Express)" {
+    shape: rectangle
+    style.fill: "#DCFCE7"
+    style.stroke: "#15803D"
+    style.border-radius: 8
+  }
+
+  device: "Firefly\nHardware" {
+    shape: hexagon
+    style.fill: "#BBF7D0"
+    style.stroke: "#15803D"
+    style.stroke-width: 3
+  }
+}
+
+xrpl: XRPL Testnet {
+  shape: cloud
+  style.fill: "#F5F3FF"
+  style.stroke: "#7C3AED"
+  style.stroke-width: 2
+}
+
+operator -> railway.web: HTTPS
+railway.web -> railway.api: REST API {
+  style.stroke: "#3B82F6"
+}
+railway.api -> railway.db: "Audit trail (async)" {
+  style.stroke: "#6366F1"
+}
+railway.api -> xrpl: "Payments / Escrow (xrpl-py WSS)" {
+  style.stroke: "#7C3AED"
+  style.stroke-dash: 3
+}
+railway.web -> local.bridge: "localhost:4747 approval" {
+  style.stroke: "#16A34A"
+  style.stroke-dash: 4
+}
+local.bridge -> local.device: USB / Serial {
+  style.stroke: "#15803D"
+}
+local.device -> local.bridge: secp256k1 signature {
+  style.stroke: "#15803D"
+  style.stroke-dash: 2
+}
+railway.web -> railway.api: "POST /release + signature" {
+  style.stroke: "#DC2626"
+  style.stroke-width: 2
+}
