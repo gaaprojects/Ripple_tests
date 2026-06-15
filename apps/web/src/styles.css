@@ -1016,12 +1016,33 @@ input:focus {
 
 .approve,
 .tamper-demo,
+.kyc-resolve,
 .receipt-btn {
   width: 100%;
   min-height: 42px;
   margin-top: 10px;
   border-radius: 999px;
   font-weight: 800;
+}
+
+.kyc-resolve {
+  border: 1px solid var(--orange);
+  background: rgba(209, 103, 31, 0.12);
+  color: var(--paper);
+}
+
+.kyc-gate {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-align: left;
+}
+
+.kyc-gate p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .approve {

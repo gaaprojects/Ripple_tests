@@ -5,6 +5,8 @@ interface Props {
   payment: Payment;
   onApprove: (payment: Payment) => void;
   approving: boolean;
+  onResolveKyc?: (payment: Payment) => void;
+  resolvingKyc?: boolean;
   onTamperRetry: (payment: Payment) => void;
   tampering: boolean;
   tamperError?: string;
@@ -40,6 +42,8 @@ export function PaymentCard({
   payment,
   onApprove,
   approving,
+  onResolveKyc,
+  resolvingKyc,
   onTamperRetry,
   tampering,
   tamperError,
@@ -50,6 +54,10 @@ export function PaymentCard({
   const publicIntel = compliance?.publicIntel;
   const credential = compliance?.credential;
   const route = payment.routeQuote;
+  // Offer the inline KYC gate only when the escalation is (at least partly) a
+  // missing credential — never for a sanctioned counterparty (that stays blocked).
+  const kycMissing = Boolean(credential?.checked && !credential.verified);
+  const canResolveKyc = status === "pending_approval" && kycMissing && Boolean(onResolveKyc);
 
   return (
     <article className={`payment status-${status}`}>
@@ -97,6 +105,16 @@ export function PaymentCard({
         <p className="block-reason">Refused: {policyDecision.blockReason}</p>
       )}
       {payment.auditExplanation && <p className="audit">{payment.auditExplanation}</p>}
+
+      {canResolveKyc && (
+        <button
+          className="kyc-resolve"
+          disabled={resolvingKyc}
+          onClick={() => onResolveKyc?.(payment)}
+        >
+          {resolvingKyc ? "Issuing credential..." : "Issue KYC credential & retry"}
+        </button>
+      )}
 
       {status === "pending_approval" && (
         <button className="approve" disabled={approving} onClick={() => onApprove(payment)}>

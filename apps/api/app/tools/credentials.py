@@ -34,6 +34,16 @@ from ..schemas import CredentialStatus
 # demonstrated offline. Everyone else is considered verified in the mock.
 MOCK_UNVERIFIED_SUBJECTS = {"rUNVERIFIED00000000000000000000000"}
 
+# Credentials accepted during this mock session, keyed by (subject, issuer, type).
+# Lets the inline KYC gate work offline: after the agent issues + accepts a
+# credential for an un-KYC'd subject, verify_kyc flips it to verified.
+_MOCK_ACCEPTED: set[tuple[str, str, str]] = set()
+
+
+def reset_mock_state() -> None:
+    """Clear mock-accepted credentials (used by tests for isolation)."""
+    _MOCK_ACCEPTED.clear()
+
 
 async def verify_kyc(subject: str) -> CredentialStatus:
     """Verify the subject holds a valid KYC credential from the trusted issuer."""
@@ -173,6 +183,7 @@ async def accept_credential(
     credential_type = credential_type or settings.credential_type
 
     if settings.use_mock_xrpl:
+        _MOCK_ACCEPTED.add((subject, issuer, credential_type))
         return {
             "txHash": _mock_hash("accept", subject),
             "subject": subject,
@@ -213,7 +224,8 @@ async def accept_credential(
 
 
 def _mock_verify(subject: str, issuer: str, credential_type: str) -> CredentialStatus:
-    verified = subject not in MOCK_UNVERIFIED_SUBJECTS
+    accepted = (subject, issuer, credential_type) in _MOCK_ACCEPTED
+    verified = accepted or subject not in MOCK_UNVERIFIED_SUBJECTS
     return CredentialStatus(
         checked=True,
         verified=verified,

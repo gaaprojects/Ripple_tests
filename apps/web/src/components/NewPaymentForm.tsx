@@ -85,8 +85,11 @@ export function NewPaymentForm({ onSubmit, disabled }: Props) {
   const [quoteError, setQuoteError] = useState("");
   const [lastPayment, setLastPayment] = useState<Payment | null>(null);
   const [failureReason, setFailureReason] = useState("");
+  const [issuingCredential, setIssuingCredential] = useState(false);
 
   const amount = amountFromInput(amountInput);
+  const credential = lastPayment?.compliance?.credential;
+  const kycMissing = Boolean(credential?.checked && !credential.verified);
   const sender = SENDERS[senderIndex];
   const networkFee = Math.max((routeQuote?.destAmount ?? amount) * 0.001, currency === "XRP" ? 0.000012 : 1.21);
   const receiveAmount = routeQuote?.destAmount ?? amount;
@@ -183,6 +186,31 @@ export function NewPaymentForm({ onSubmit, disabled }: Props) {
     } catch (cause) {
       setFailureReason(cause instanceof Error ? cause.message : String(cause));
       setStep("failure");
+    }
+  }
+
+  // Inline KYC gate: issue + accept an XLS-70 credential for the receiver, then
+  // resubmit. Code re-evaluates policy — issuing only clears the KYC risk flag.
+  async function issueCredentialAndRetry() {
+    setIssuingCredential(true);
+    setFailureReason("");
+    try {
+      const record = await api.issueCredential({
+        subject: intent.to,
+        subjectName: intent.receiverName,
+        autoAccept: true,
+      });
+      if (record.status === "refused" || record.status === "failed") {
+        setFailureReason(record.refusedReason ?? "Credential could not be issued.");
+        setStep("failure");
+        return;
+      }
+      await sendPayment();
+    } catch (cause) {
+      setFailureReason(cause instanceof Error ? cause.message : String(cause));
+      setStep("failure");
+    } finally {
+      setIssuingCredential(false);
     }
   }
 
@@ -402,6 +430,22 @@ export function NewPaymentForm({ onSubmit, disabled }: Props) {
             <p>Please confirm this transaction on your Firefly.app device. Funds are locked until the signed approval is verified.</p>
             <div className="progress-line" />
             <p className="muted">Waiting for Firefly.app confirmation in the payment queue...</p>
+            {kycMissing && (
+              <div className="kyc-gate" role="group" aria-label="KYC credential gate">
+                <p>
+                  Receiver has no accepted XLS-70 KYC credential ({credential?.reason}). Issue one
+                  inline to clear the credential flag, then code re-checks the policy.
+                </p>
+                <button
+                  className="kyc-resolve"
+                  type="button"
+                  disabled={issuingCredential}
+                  onClick={() => void issueCredentialAndRetry()}
+                >
+                  {issuingCredential ? "Issuing credential..." : "Issue KYC credential & retry"}
+                </button>
+              </div>
+            )}
             <button className="primary-action" type="button" onClick={() => setStep("input")}>
               View queue
             </button>

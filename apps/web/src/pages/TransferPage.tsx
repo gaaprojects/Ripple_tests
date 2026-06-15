@@ -7,10 +7,12 @@ interface Props {
   payments: Payment[];
   busy: boolean;
   approvingId: string | null;
+  resolvingKycId: string | null;
   tamperedId: string | null;
   tamperError: Record<string, string>;
   onSubmit: (intent: PaymentIntent) => Promise<Payment | null>;
   onApprove: (payment: Payment) => void;
+  onResolveKyc: (payment: Payment) => void;
   onTamperRetry: (payment: Payment) => void;
 }
 
@@ -18,10 +20,12 @@ export function TransferPage({
   payments,
   busy,
   approvingId,
+  resolvingKycId,
   tamperedId,
   tamperError,
   onSubmit,
   onApprove,
+  onResolveKyc,
   onTamperRetry,
 }: Props) {
   return (
@@ -37,6 +41,8 @@ export function TransferPage({
             payment={payment}
             onApprove={onApprove}
             approving={approvingId === payment.id}
+            onResolveKyc={onResolveKyc}
+            resolvingKyc={resolvingKycId === payment.id}
             onTamperRetry={onTamperRetry}
             tampering={tamperedId === payment.id}
             tamperError={tamperError[payment.id]}

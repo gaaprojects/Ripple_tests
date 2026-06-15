@@ -130,6 +130,10 @@ class CredentialIssueRequest(CamelModel):
     uri: str | None = None
     expiration: datetime | None = None
     note: str | None = None
+    # When true, the agent also runs the subject-side CredentialAccept so the
+    # credential is immediately usable. Used by the inline KYC gate (mock, or
+    # Testnet when CREDENTIAL_SUBJECT_SEED is configured).
+    auto_accept: bool = False
 
 
 class CredentialLogEntry(CamelModel):

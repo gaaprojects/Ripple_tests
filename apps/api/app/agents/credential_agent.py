@@ -91,7 +91,18 @@ async def issue(request: CredentialIssueRequest) -> CredentialRecord:
     )
     short = (record.tx_hash or "")[:12]
     _log(record_id, f"CredentialCreate submitted. Tx {short}… Awaiting subject acceptance.")
-    return _touch(record)
+    _touch(record)
+
+    if request.auto_accept:
+        try:
+            return await accept(record_id)
+        except (NotImplementedError, InvalidCredentialState) as exc:
+            # Issuance succeeded; auto-accept is best-effort (e.g. no subject seed
+            # on a real network). Leave the record 'issued' for a manual accept.
+            _log(record_id, f"Auto-accept skipped: {exc}.")
+            return _touch(record)
+
+    return record
 
 
 async def accept(record_id: str, subject_seed: str | None = None) -> CredentialRecord:

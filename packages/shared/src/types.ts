@@ -86,6 +86,9 @@ export interface CredentialIssueRequest {
   uri?: string | null;
   expiration?: string | null;
   note?: string | null;
+  // When true, the agent also runs the subject-side CredentialAccept so the
+  // credential is immediately usable (inline KYC gate).
+  autoAccept?: boolean;
 }
 
 export interface CredentialLogEntry {

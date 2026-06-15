@@ -87,6 +87,23 @@ async def test_verify_marks_record_verified(monkeypatch):
     assert verified.status is CredentialRecordStatus.verified
 
 
+async def test_auto_accept_flips_unverified_subject_to_verified(monkeypatch):
+    _patch(monkeypatch)
+    credentials.reset_mock_state()
+    subject = next(iter(credentials.MOCK_UNVERIFIED_SUBJECTS))
+
+    before = await credentials.verify_kyc(subject)
+    assert before.verified is False
+
+    record = await credential_agent.issue(_request(subject=subject, autoAccept=True))
+    assert record.status is CredentialRecordStatus.accepted
+    assert record.accepted is True
+
+    after = await credentials.verify_kyc(subject)
+    assert after.verified is True
+    credentials.reset_mock_state()
+
+
 async def test_accept_unknown_record_raises(monkeypatch):
     _patch(monkeypatch)
 
