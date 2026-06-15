@@ -1,0 +1,80 @@
+vars: {
+  d2-config: {
+    theme-id: 200
+  }
+}
+
+title: |md
+  ## Payment Workflow — Three Paths
+  Auto-settle · Hardware-approve · Blocked (sanctions)
+| {
+  near: top-center
+}
+
+flow: {
+  shape: sequence_diagram
+
+  web: Web Dashboard
+  orch: Orchestrator
+  routing: Routing Tool
+  compliance: Compliance Tool
+  policy: Policy Engine
+  execution: Execution Tool
+  audit: "Audit + Receipt"
+  firefly: Firefly Tool
+  bridge: Local Bridge
+  device: Firefly Device
+  xrpl: XRPL Testnet
+  db: PostgreSQL
+
+  web -> orch: "POST /payments {intent}"
+
+  orch -> routing: "1. get_fx_path()"
+  routing -> xrpl: ripple_path_find
+  xrpl -> routing: path + rate
+  routing -> orch: RouteQuote
+
+  orch -> compliance: "2. check_compliance()"
+  compliance -> orch: "ComplianceResult {aml_score, sanctioned}"
+
+  orch -> policy: "3. evaluate(amount, aml_score, sanctioned)"
+
+  policy -> orch: "PATH A — BLOCKED: sanctioned=true"
+  orch -> db: "status=BLOCKED, block_reason"
+  orch -> web: "Payment refused — no XRPL tx"
+
+  policy -> orch: "PATH B — AUTO-SETTLE: low risk"
+  orch -> execution: "4a. execute_payment()"
+  execution -> xrpl: Payment tx (direct token)
+  xrpl -> execution: tx_hash
+  execution -> orch: "ExecutionResult {tx_hash, settled}"
+  orch -> audit: "5. write_audit() + receipt_hash"
+  audit -> db: full decision trail
+  orch -> web: "SETTLED + explorer link"
+
+  policy -> orch: "PATH C — ESCALATE: over threshold"
+  orch -> execution: "4b. lock_payment()"
+  execution -> xrpl: EscrowCreate
+  xrpl -> execution: "escrow_sequence, tx_hash"
+  execution -> orch: "EscrowResult {pending}"
+  orch -> db: "status=PENDING_APPROVAL"
+  orch -> web: "Pending — approve on device"
+
+  web -> bridge: "GET challenge (localhost:4747)"
+  bridge -> web: approval digest
+  web -> bridge: "sign(digest)"
+  bridge -> device: display + wait for button
+  device -> bridge: secp256k1 signature
+  bridge -> web: signature
+
+  web -> orch: "POST /release {signature}"
+  orch -> firefly: "verify_signature(digest, sig)"
+  firefly -> orch: verified=true
+  orch -> execution: "finish_escrow()"
+  execution -> xrpl: EscrowFinish
+  xrpl -> execution: tx_hash
+  execution -> orch: released
+  orch -> audit: "write_audit() + receipt_hash"
+  audit -> db: "approval_signature, tx_hash"
+  orch -> web: "RELEASED + explorer link"
+}

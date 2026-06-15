@@ -1,0 +1,113 @@
+vars: {
+  d2-config: {
+    theme-id: 200
+  }
+}
+
+direction: right
+
+title: |md
+  ## Ripple Treasury Agent — System Overview
+  Autonomous cross-border payments with Firefly hardware veto on XRPL
+| {
+  near: top-center
+}
+
+operator: Treasury Operator {
+  shape: person
+  style.fill: "#451A03"
+  style.stroke: "#F59E0B"
+  style.stroke-width: 2
+  style.font-color: "#FEF3C7"
+}
+
+railway: Railway Cloud {
+  style.fill: "#1E2A3A"
+  style.stroke: "#60A5FA"
+  style.stroke-width: 2
+  style.border-radius: 12
+  style.font-color: "#93C5FD"
+
+  web: React Dashboard {
+    shape: rectangle
+    style.fill: "#1E3A5F"
+    style.stroke: "#3B82F6"
+    style.border-radius: 8
+    style.font-color: "#BFDBFE"
+  }
+
+  api: "Treasury Orchestrator\n(FastAPI)" {
+    shape: rectangle
+    style.fill: "#1E3A5F"
+    style.stroke: "#3B82F6"
+    style.border-radius: 8
+    style.font-color: "#BFDBFE"
+  }
+
+  db: "Audit Database\n(PostgreSQL)" {
+    shape: cylinder
+    style.fill: "#1E3A5F"
+    style.stroke: "#3B82F6"
+    style.font-color: "#BFDBFE"
+  }
+}
+
+local: "Operator's Machine — Local Only" {
+  style.fill: "#052E16"
+  style.stroke: "#4ADE80"
+  style.stroke-width: 2
+  style.stroke-dash: 4
+  style.border-radius: 12
+  style.font-color: "#86EFAC"
+
+  bridge: "Firefly Bridge\n(Node/Express)" {
+    shape: rectangle
+    style.fill: "#14532D"
+    style.stroke: "#22C55E"
+    style.border-radius: 8
+    style.font-color: "#BBF7D0"
+  }
+
+  device: "Firefly\nHardware" {
+    shape: hexagon
+    style.fill: "#166534"
+    style.stroke: "#22C55E"
+    style.stroke-width: 3
+    style.font-color: "#DCFCE7"
+  }
+}
+
+xrpl: XRPL Testnet {
+  shape: cloud
+  style.fill: "#2E1065"
+  style.stroke: "#A78BFA"
+  style.stroke-width: 2
+  style.font-color: "#DDD6FE"
+}
+
+operator -> railway.web: HTTPS
+railway.web -> railway.api: REST API {
+  style.stroke: "#60A5FA"
+}
+railway.api -> railway.db: "Audit trail (async)" {
+  style.stroke: "#818CF8"
+}
+railway.api -> xrpl: "Payments / Escrow (xrpl-py WSS)" {
+  style.stroke: "#A78BFA"
+  style.stroke-dash: 3
+}
+railway.web -> local.bridge: "localhost:4747 approval" {
+  style.stroke: "#4ADE80"
+  style.stroke-dash: 4
+}
+local.bridge -> local.device: USB / Serial {
+  style.stroke: "#22C55E"
+}
+local.device -> local.bridge: secp256k1 signature {
+  style.stroke: "#22C55E"
+  style.stroke-dash: 2
+}
+railway.web -> railway.api: "POST /release + signature" {
+  style.stroke: "#F87171"
+  style.stroke-width: 2
+}
