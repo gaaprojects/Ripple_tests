@@ -91,7 +91,10 @@ async def lock_payment(payment_id: str, intent: PaymentIntent, route: RouteQuote
     from datetime import datetime, timedelta, timezone
 
     wallet = Wallet.from_seed(settings.treasury_wallet_seed)
-    finish_after = datetime_to_ripple_time(datetime.now(timezone.utc) + timedelta(seconds=1))
+    # FinishAfter must be safely in the future when the tx is APPLIED (the next
+    # ledger closes ~4s later); +1s lands in the past and XRPL returns
+    # tecNO_PERMISSION. Give margin for ledger latency.
+    finish_after = datetime_to_ripple_time(datetime.now(timezone.utc) + timedelta(seconds=9))
     tx = EscrowCreate(
         account=wallet.address,
         destination=intent.to,
@@ -99,7 +102,8 @@ async def lock_payment(payment_id: str, intent: PaymentIntent, route: RouteQuote
         finish_after=finish_after,
     )
     async with xrpl_client.async_client() as client:
-        signed = await sign(await autofill(tx, client), wallet)
+        # `sign` is synchronous in xrpl-py 4.x; only autofill/submit are async.
+        signed = sign(await autofill(tx, client), wallet)
         response = await submit_and_wait(signed, client)
 
     result = response.result
