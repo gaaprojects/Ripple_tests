@@ -33,6 +33,15 @@ line; issuer = COMPLIANCE_ISSUER (`rEF5…6uew`); RLUSD hex
    for RLUSD (`base==quote` short-circuit) — addressed in Phase 2.2.
 
 ## Progress log
+- **Phase 3 — landed.** New `app/tools/vault.py` (VaultCreate / VaultDeposit / VaultWithdraw,
+  mock + real paths, same shape as execution.py). xrpl-py 4.5.0 ships these classes natively;
+  real-mode transactions go to `VAULT_XRPL_ENDPOINT` (Devnet by default — XLS-65 is not yet
+  on Testnet). In-memory vault state tracks `deposited`, `shares`, `wallet_balance` for the
+  mock demo. Treasury agent `run()` now calls `_vault_sweep()` on each cycle (deterministic:
+  deposit excess above `vault_sweep_threshold_usd`, recall when below `vault_recall_threshold_usd`).
+  New routes: `GET/POST /treasury/vault`, `POST /treasury/vault/deposit`,
+  `POST /treasury/vault/withdraw`. Vault section added to TreasuryPage. 13 new vault tests
+  (93/93 total pass). Both TS packages typecheck clean.
 - **Phase 4 — landed.** `SerialFireflyDevice` added to `apps/firefly-bridge/src/device.ts`:
   newline-delimited JSON serial protocol (ESP32-C3, secp256k1); `DEVICE_MODE=hardware|simulator`
   selects the adapter; `BRIDGE_SERIAL_PORT` + `FIREFLY_PUBLIC_KEY` required in hardware mode.

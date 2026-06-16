@@ -241,6 +241,43 @@ class Payment(CamelModel):
 
 # ── Autonomous Treasury Agent ──────────────────────────────────────────────────
 
+# ── XLS-65 Single Asset Vault ─────────────────────────────────────────────────
+
+class VaultOpRecord(CamelModel):
+    """One vault operation (create / deposit / withdraw) from the audit trail."""
+
+    id: str
+    operation: str  # "create" | "deposit" | "withdraw"
+    amount: float
+    tx_hash: str
+    explorer_url: str | None = None
+    timestamp: datetime
+
+
+class VaultStatus(CamelModel):
+    """Snapshot of the treasury's vault position and configuration."""
+
+    vault_id: str | None = None
+    enabled: bool
+    network: str  # "mock" | "devnet" | "testnet"
+    deposited: float
+    shares: float
+    wallet_balance: float
+    asset_currency: str
+    asset_issuer: str | None = None
+    sweep_threshold_usd: float
+    recall_threshold_usd: float
+    recent_operations: list[VaultOpRecord] = Field(default_factory=list)
+
+
+class VaultDepositRequest(CamelModel):
+    amount: float
+
+
+class VaultWithdrawRequest(CamelModel):
+    amount: float
+
+
 class TreasuryGoal(CamelModel):
     """A recurring/conditional payment goal for the autonomous treasury agent.
 

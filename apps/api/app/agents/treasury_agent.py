@@ -29,6 +29,7 @@ from ..schemas import (
     TreasuryGoal,
     TreasuryGoalCreate,
 )
+from ..tools import vault as vault_tool
 from . import orchestrator
 
 # In-memory goal registry (survives the process lifetime; loaded from config or
@@ -149,6 +150,10 @@ async def run(goals: list[TreasuryGoal] | None = None) -> TreasuryAgentRun:
         # Update last_triggered_at on the stored goal.
         _goals[goal.id] = goal.model_copy(update={"last_triggered_at": now})
 
+    # Deterministic vault sweep: deposit excess above threshold, recall when low.
+    # Only runs when vault_enabled=True; never the LLM's decision.
+    await _vault_sweep(trigger_log, settings)
+
     narration = await _narrate(active_goals, trigger_log, payments_initiated, settings)
 
     agent_run = TreasuryAgentRun(
@@ -236,6 +241,72 @@ async def _narrate(
         return response.choices[0].message.content or template
     except Exception:
         return template
+
+
+async def _vault_sweep(trigger_log: list[str], settings) -> None:
+    """Deterministic idle-treasury sweep using XLS-65 vault.
+
+    If vault_enabled: deposit excess above sweep_threshold into the vault;
+    recall when the wallet balance falls below recall_threshold.
+
+    Runs after payment goals are evaluated so payments have priority on
+    the wallet balance. The LLM narrates these entries with the others.
+    """
+    if not settings.vault_enabled:
+        return
+
+    state = vault_tool.get_vault_state()
+    vault_id = settings.vault_id or state["vault_id"]
+    if not vault_id and not settings.use_mock_xrpl:
+        trigger_log.append(
+            "[vault] No vault_id configured — run POST /treasury/vault to create one."
+        )
+        return
+
+    balance = _wallet_balance(settings)
+
+    if balance > settings.vault_sweep_threshold_usd:
+        excess = balance - settings.vault_sweep_threshold_usd
+        try:
+            op = await vault_tool.deposit(vault_id or "MOCK_VAULT", excess)
+            trigger_log.append(
+                f"[vault] Swept {op.amount:,.2f} {settings.token_currency} → vault "
+                f"(wallet {balance:,.2f} → {balance - op.amount:,.2f}, "
+                f"vault now {state['deposited'] + op.amount:,.2f})."
+            )
+        except Exception as exc:
+            trigger_log.append(f"[vault] Deposit failed: {exc}")
+
+    elif balance < settings.vault_recall_threshold_usd:
+        needed = settings.vault_sweep_threshold_usd - balance
+        try:
+            op = await vault_tool.withdraw(vault_id or "MOCK_VAULT", needed)
+            trigger_log.append(
+                f"[vault] Recalled {op.amount:,.2f} {settings.token_currency} from vault "
+                f"(wallet {balance:,.2f} → {balance + op.amount:,.2f}, "
+                f"vault now {max(0.0, state['deposited'] - op.amount):,.2f})."
+            )
+        except Exception as exc:
+            trigger_log.append(f"[vault] Withdraw failed: {exc}")
+
+    else:
+        trigger_log.append(
+            f"[vault] Balance {balance:,.2f} {settings.token_currency} "
+            f"within sweep range [{settings.vault_recall_threshold_usd:,.0f}–"
+            f"{settings.vault_sweep_threshold_usd:,.0f}] — no sweep needed."
+        )
+
+
+def _wallet_balance(settings) -> float:
+    """Return treasury hot-wallet balance for vault sweep decisions.
+
+    Mock mode: reads from in-memory vault state (deducted on deposit, credited
+    on withdraw). Real mode: requires an async XRPL account_lines query —
+    returns 0.0 for now; wire a real balance fetch when running on Devnet.
+    """
+    if settings.use_mock_xrpl:
+        return vault_tool.get_vault_state()["wallet_balance"]
+    return 0.0
 
 
 def _now() -> datetime:

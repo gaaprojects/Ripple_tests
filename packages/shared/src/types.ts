@@ -182,6 +182,31 @@ export interface AgentLogEntry {
   message: string;
 }
 
+// ── XLS-65 Single Asset Vault ────────────────────────────────────────────────
+
+export interface VaultOpRecord {
+  id: string;
+  operation: "create" | "deposit" | "withdraw";
+  amount: number;
+  txHash: string;
+  explorerUrl: string | null;
+  timestamp: string;
+}
+
+export interface VaultStatus {
+  vaultId: string | null;
+  enabled: boolean;
+  network: string; // "mock" | "devnet" | "testnet"
+  deposited: number;
+  shares: number;
+  walletBalance: number;
+  assetCurrency: string;
+  assetIssuer: string | null;
+  sweepThresholdUsd: number;
+  recallThresholdUsd: number;
+  recentOperations: VaultOpRecord[];
+}
+
 // ── Autonomous Treasury Agent ─────────────────────────────────────────────────
 
 export interface TreasuryGoal {

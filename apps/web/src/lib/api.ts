@@ -12,6 +12,8 @@ import type {
   TreasuryAgentRun,
   TreasuryGoal,
   TreasuryGoalCreate,
+  VaultOpRecord,
+  VaultStatus,
 } from "@treasury/shared";
 
 const DEFAULT_API_BASE_URL = "http://localhost:8000";
@@ -92,4 +94,18 @@ export const api = {
   triggerTreasuryRun: () =>
     request<TreasuryAgentRun>("/treasury/run", { method: "POST" }),
   listTreasuryRuns: () => request<TreasuryAgentRun[]>("/treasury/runs"),
+
+  // XLS-65 vault.
+  getVaultStatus: () => request<VaultStatus>("/treasury/vault"),
+  createVault: () => request<VaultOpRecord>("/treasury/vault", { method: "POST" }),
+  depositToVault: (amount: number) =>
+    request<VaultOpRecord>("/treasury/vault/deposit", {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
+  withdrawFromVault: (amount: number) =>
+    request<VaultOpRecord>("/treasury/vault/withdraw", {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
 };

@@ -78,6 +78,17 @@ class Settings(BaseSettings):
     # Country code the treasury agent reports as its own origin (CH for SwissHacks).
     agent_sender_country: str = "CH"
 
+    # XLS-65 Single Asset Vault + XLS-66 yield. Disabled by default — requires
+    # the XLS-65 amendment which is available on Devnet but may not be on
+    # Testnet yet. vault_id is set after the first VaultCreate and stored here.
+    # sweep: deposit excess above vault_sweep_threshold_usd on each agent cycle;
+    # recall: withdraw when wallet balance falls below vault_recall_threshold_usd.
+    vault_enabled: bool = False
+    vault_xrpl_endpoint: str = "wss://s.devnet.rippletest.net:51233"
+    vault_sweep_threshold_usd: float = 5_000.0
+    vault_recall_threshold_usd: float = 1_000.0
+    vault_id: str = ""  # hex LedgerIndex of the Vault object; set after VaultCreate
+
     # Comma-separated browser origins allowed to call the API.
     cors_origins: str = (
         "http://localhost:5173,"

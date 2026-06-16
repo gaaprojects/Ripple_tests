@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ChangeEvent } from "react";
-import type { TreasuryAgentRun, TreasuryGoal, TreasuryGoalCreate } from "@treasury/shared";
+import type { TreasuryAgentRun, TreasuryGoal, TreasuryGoalCreate, VaultStatus } from "@treasury/shared";
 
 import { api } from "../lib/api.js";
 
@@ -21,16 +21,24 @@ const DEFAULT_GOAL: TreasuryGoalCreate = {
 export function TreasuryPage() {
   const [goals, setGoals] = useState<TreasuryGoal[]>([]);
   const [runs, setRuns] = useState<TreasuryAgentRun[]>([]);
+  const [vault, setVault] = useState<VaultStatus | null>(null);
   const [form, setForm] = useState<TreasuryGoalCreate>(DEFAULT_GOAL);
+  const [vaultAmount, setVaultAmount] = useState<number>(10_000);
   const [busy, setBusy] = useState(false);
   const [running, setRunning] = useState(false);
+  const [vaultBusy, setVaultBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const [g, r] = await Promise.all([api.listTreasuryGoals(), api.listTreasuryRuns()]);
+      const [g, r, v] = await Promise.all([
+        api.listTreasuryGoals(),
+        api.listTreasuryRuns(),
+        api.getVaultStatus().catch(() => null),
+      ]);
       setGoals(g);
       setRuns(r);
+      setVault(v);
     } catch (cause) {
       setError(String(cause));
     }
@@ -70,6 +78,19 @@ export function TreasuryPage() {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setRunning(false);
+    }
+  }, [refresh]);
+
+  const vaultAction = useCallback(async (action: () => Promise<unknown>) => {
+    setVaultBusy(true);
+    setError(null);
+    try {
+      await action();
+      await refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setVaultBusy(false);
     }
   }, [refresh]);
 
@@ -199,6 +220,103 @@ export function TreasuryPage() {
               </div>
             </article>
           ))}
+        </section>
+        {/* XLS-65 Vault */}
+        <section className="queue" aria-label="XLS-65 vault">
+          <div className="section-heading" style={{ marginBottom: "0.75rem" }}>
+            <span className="eyebrow">XLS-65 · XLS-66</span>
+            <strong>Single Asset Vault — idle-treasury yield</strong>
+          </div>
+          <p className="muted" style={{ marginBottom: "1rem" }}>
+            Idle RLUSD earns XLS-66 lending yield inside a vault. The agent sweeps excess above the
+            threshold on each cycle and recalls funds when the wallet balance drops. Deterministic
+            code decides; the LLM only narrates.{" "}
+            <strong>Network: {vault?.network ?? "…"}</strong>
+            {vault?.network === "devnet" && (
+              <span className="muted"> (XLS-65 amendment — Devnet only today)</span>
+            )}
+          </p>
+
+          {vault && (
+            <div className="decision-row" style={{ flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
+              <div>
+                <p className="muted">Vault ID</p>
+                <code style={{ fontSize: "0.75rem" }}>{vault.vaultId ? `${vault.vaultId.slice(0, 16)}…` : "none"}</code>
+              </div>
+              <div>
+                <p className="muted">Deposited</p>
+                <strong>{vault.deposited.toLocaleString()} {vault.assetCurrency}</strong>
+              </div>
+              <div>
+                <p className="muted">Shares</p>
+                <strong>{vault.shares.toFixed(2)}</strong>
+              </div>
+              <div>
+                <p className="muted">Hot wallet</p>
+                <strong>{vault.walletBalance.toLocaleString()} {vault.assetCurrency}</strong>
+              </div>
+              <div>
+                <p className="muted">Sweep ↑ / Recall ↓</p>
+                <span className="muted">
+                  {vault.sweepThresholdUsd.toLocaleString()} / {vault.recallThresholdUsd.toLocaleString()} USD
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "flex-end", marginBottom: "1rem" }}>
+            <button
+              className="primary-action"
+              type="button"
+              disabled={vaultBusy || (vault?.vaultId !== null && vault?.vaultId !== undefined)}
+              onClick={() => void vaultAction(() => api.createVault())}
+            >
+              {vaultBusy ? "Working…" : "Create vault (VaultCreate)"}
+            </button>
+            <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+              <span className="muted" style={{ fontSize: "0.75rem" }}>Amount</span>
+              <input
+                type="number"
+                value={vaultAmount}
+                onChange={(e) => setVaultAmount(Number(e.target.value))}
+                disabled={vaultBusy}
+                min={0}
+                style={{ width: "8rem" }}
+              />
+            </label>
+            <button
+              className="primary-action"
+              type="button"
+              disabled={vaultBusy || !vault?.vaultId}
+              onClick={() => void vaultAction(() => api.depositToVault(vaultAmount))}
+            >
+              Deposit (VaultDeposit)
+            </button>
+            <button
+              className="primary-action"
+              type="button"
+              disabled={vaultBusy || !vault?.vaultId}
+              onClick={() => void vaultAction(() => api.withdrawFromVault(vaultAmount))}
+            >
+              Withdraw (VaultWithdraw)
+            </button>
+          </div>
+
+          {vault && vault.recentOperations.length > 0 && (
+            <ul className="credential-log">
+              {vault.recentOperations.map((op) => (
+                <li key={op.id} className="muted">
+                  <code>{op.timestamp.slice(11, 19)}</code>{" "}
+                  <strong>{op.operation}</strong>{" "}
+                  {op.amount > 0 && <>{op.amount.toLocaleString()} {vault.assetCurrency} · </>}
+                  <code style={{ fontSize: "0.7rem" }}>{op.txHash.slice(0, 12)}…</code>
+                  {op.explorerUrl && (
+                    <> · <a href={op.explorerUrl} target="_blank" rel="noreferrer">explorer</a></>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
     </section>

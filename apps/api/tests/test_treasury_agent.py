@@ -61,6 +61,12 @@ def _settings(**overrides):
         "opensanctions_match_threshold": 0.85,
         "frankfurter_base_url": "https://api.frankfurter.dev/v1",
         "firefly_public_key": "",
+        # XLS-65 vault — disabled by default in agent tests
+        "vault_enabled": False,
+        "vault_xrpl_endpoint": "wss://s.devnet.rippletest.net:51233",
+        "vault_sweep_threshold_usd": 5_000.0,
+        "vault_recall_threshold_usd": 1_000.0,
+        "vault_id": "",
     }
     data.update(overrides)
     return SimpleNamespace(**data)
