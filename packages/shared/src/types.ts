@@ -182,6 +182,33 @@ export interface AgentLogEntry {
   message: string;
 }
 
+// ── XLS-33 MPTokens — COMPLY compliance-attestation ─────────────────────────
+
+export interface MPTAttestationRecord {
+  id: string;
+  issuanceId: string;
+  recipient: string;
+  paymentId: string;
+  amountSettled: number;
+  txHash: string;
+  explorerUrl: string | null;
+  timestamp: string;
+}
+
+export interface MPTStatus {
+  issuanceId: string | null;
+  enabled: boolean;
+  network: string;        // "mock" | "testnet" | "devnet"
+  metadataHex: string;    // hex-encoded "COMPLY" metadata
+  totalMinted: number;
+  authorizedCount: number;
+  recentAttestations: MPTAttestationRecord[];
+}
+
+export interface MPTAuthorizeRequest {
+  holder: string;         // XRPL address to authorize
+}
+
 // ── XLS-65 Single Asset Vault ────────────────────────────────────────────────
 
 export interface VaultOpRecord {

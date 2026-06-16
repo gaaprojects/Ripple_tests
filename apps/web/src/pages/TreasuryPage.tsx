@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ChangeEvent } from "react";
-import type { TreasuryAgentRun, TreasuryGoal, TreasuryGoalCreate, VaultStatus } from "@treasury/shared";
+import type { MPTStatus, TreasuryAgentRun, TreasuryGoal, TreasuryGoalCreate, VaultStatus } from "@treasury/shared";
 
 import { api } from "../lib/api.js";
 
@@ -22,23 +22,28 @@ export function TreasuryPage() {
   const [goals, setGoals] = useState<TreasuryGoal[]>([]);
   const [runs, setRuns] = useState<TreasuryAgentRun[]>([]);
   const [vault, setVault] = useState<VaultStatus | null>(null);
+  const [mpt, setMpt] = useState<MPTStatus | null>(null);
   const [form, setForm] = useState<TreasuryGoalCreate>(DEFAULT_GOAL);
   const [vaultAmount, setVaultAmount] = useState<number>(10_000);
+  const [mptHolder, setMptHolder] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [running, setRunning] = useState(false);
   const [vaultBusy, setVaultBusy] = useState(false);
+  const [mptBusy, setMptBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const [g, r, v] = await Promise.all([
+      const [g, r, v, m] = await Promise.all([
         api.listTreasuryGoals(),
         api.listTreasuryRuns(),
         api.getVaultStatus().catch(() => null),
+        api.getMptStatus().catch(() => null),
       ]);
       setGoals(g);
       setRuns(r);
       setVault(v);
+      setMpt(m);
     } catch (cause) {
       setError(String(cause));
     }
@@ -91,6 +96,19 @@ export function TreasuryPage() {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setVaultBusy(false);
+    }
+  }, [refresh]);
+
+  const mptAction = useCallback(async (action: () => Promise<unknown>) => {
+    setMptBusy(true);
+    setError(null);
+    try {
+      await action();
+      await refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setMptBusy(false);
     }
   }, [refresh]);
 
@@ -221,6 +239,99 @@ export function TreasuryPage() {
             </article>
           ))}
         </section>
+        {/* XLS-33 MPTokens */}
+        <section className="queue" aria-label="XLS-33 MPTokens">
+          <div className="section-heading" style={{ marginBottom: "0.75rem" }}>
+            <span className="eyebrow">XLS-33 · MPTokens</span>
+            <strong>COMPLY compliance-attestation issuance</strong>
+          </div>
+          <p className="muted" style={{ marginBottom: "1rem" }}>
+            Every auto-settled payment mints 1 soulbound COMPLY token to the recipient as an
+            on-chain compliance proof. The issuance has no transfer flag — badges cannot
+            be traded away. <strong>Network: {mpt?.network ?? "…"}</strong>
+          </p>
+
+          {mpt && (
+            <div className="decision-row" style={{ flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
+              <div>
+                <p className="muted">Issuance ID</p>
+                <code style={{ fontSize: "0.75rem" }}>
+                  {mpt.issuanceId ? `${mpt.issuanceId.slice(0, 16)}…` : "none"}
+                </code>
+              </div>
+              <div>
+                <p className="muted">Metadata</p>
+                <code style={{ fontSize: "0.75rem" }}>{mpt.metadataHex}</code>
+              </div>
+              <div>
+                <p className="muted">Total minted</p>
+                <strong>{mpt.totalMinted}</strong>
+              </div>
+              <div>
+                <p className="muted">Authorized holders</p>
+                <strong>{mpt.authorizedCount}</strong>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "flex-end", marginBottom: "0.75rem" }}>
+            <button
+              className="primary-action"
+              type="button"
+              disabled={mptBusy || (mpt?.issuanceId !== null && mpt?.issuanceId !== undefined)}
+              onClick={() => void mptAction(() => api.createMptIssuance())}
+            >
+              {mptBusy ? "Working…" : "Create issuance (MPTokenIssuanceCreate)"}
+            </button>
+            <button
+              className="primary-action"
+              type="button"
+              disabled={mptBusy || !mpt?.issuanceId}
+              onClick={() => void mptAction(() => api.mintMptAttestation())}
+            >
+              Mint attestation
+            </button>
+          </div>
+
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "flex-end", marginBottom: "1rem" }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+              <span className="muted" style={{ fontSize: "0.75rem" }}>Holder address</span>
+              <input
+                value={mptHolder}
+                onChange={(e) => setMptHolder(e.target.value)}
+                disabled={mptBusy}
+                placeholder="rHolder…"
+                style={{ width: "18rem" }}
+                spellCheck={false}
+              />
+            </label>
+            <button
+              className="primary-action"
+              type="button"
+              disabled={mptBusy || !mpt?.issuanceId || !mptHolder}
+              onClick={() => void mptAction(() => api.authorizeMptHolder({ holder: mptHolder }))}
+            >
+              Authorize (MPTokenAuthorize)
+            </button>
+          </div>
+
+          {mpt && mpt.recentAttestations.length > 0 && (
+            <ul className="credential-log">
+              {mpt.recentAttestations.map((att) => (
+                <li key={att.id} className="muted">
+                  <code>{att.timestamp.slice(11, 19)}</code>{" "}
+                  <strong>COMPLY</strong> → {att.recipient.slice(0, 16)}…{" "}
+                  {att.amountSettled > 0 && <>({att.amountSettled.toLocaleString()} settled) </>}
+                  <code style={{ fontSize: "0.7rem" }}>{att.txHash.slice(0, 12)}…</code>
+                  {att.explorerUrl && (
+                    <> · <a href={att.explorerUrl} target="_blank" rel="noreferrer">explorer</a></>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         {/* XLS-65 Vault */}
         <section className="queue" aria-label="XLS-65 vault">
           <div className="section-heading" style={{ marginBottom: "0.75rem" }}>

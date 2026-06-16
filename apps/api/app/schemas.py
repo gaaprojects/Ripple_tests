@@ -278,6 +278,37 @@ class VaultWithdrawRequest(CamelModel):
     amount: float
 
 
+# ── XLS-33 MPTokens ───────────────────────────────────────────────────────────
+
+class MPTAttestationRecord(CamelModel):
+    """One compliance attestation minted as a COMPLY MPToken."""
+
+    id: str
+    issuance_id: str
+    recipient: str
+    payment_id: str
+    amount_settled: float
+    tx_hash: str
+    explorer_url: str | None = None
+    timestamp: datetime
+
+
+class MPTStatus(CamelModel):
+    """Snapshot of the COMPLY MPT issuance and attestation audit trail."""
+
+    issuance_id: str | None = None
+    enabled: bool
+    network: str             # "mock" | "testnet" | "devnet"
+    metadata_hex: str        # hex-encoded "COMPLY" metadata
+    total_minted: int
+    authorized_count: int
+    recent_attestations: list[MPTAttestationRecord] = Field(default_factory=list)
+
+
+class MPTAuthorizeRequest(CamelModel):
+    holder: str              # XRPL address to authorize
+
+
 class TreasuryGoal(CamelModel):
     """A recurring/conditional payment goal for the autonomous treasury agent.
 

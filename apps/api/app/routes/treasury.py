@@ -4,6 +4,7 @@
 /treasury/run        — trigger an evaluation cycle immediately (for demo / cron).
 /treasury/runs       — list recent run records.
 /treasury/vault      — XLS-65 Single Asset Vault status + operations.
+/treasury/mpt        — XLS-33 MPToken compliance-attestation issuance.
 """
 
 import uuid
@@ -14,6 +15,9 @@ from fastapi import APIRouter, HTTPException
 from ..agents import treasury_agent
 from ..config import get_settings
 from ..schemas import (
+    MPTAttestationRecord,
+    MPTAuthorizeRequest,
+    MPTStatus,
     TreasuryAgentRun,
     TreasuryGoal,
     TreasuryGoalCreate,
@@ -22,6 +26,7 @@ from ..schemas import (
     VaultStatus,
     VaultWithdrawRequest,
 )
+from ..tools import mptoken as mptoken_tool
 from ..tools import vault as vault_tool
 
 router = APIRouter(prefix="/treasury")
@@ -164,6 +169,113 @@ async def withdraw_from_vault(request: VaultWithdrawRequest) -> VaultOpRecord:
         id=str(uuid.uuid4()),
         operation="withdraw",
         amount=result.amount,
+        tx_hash=result.tx_hash,
+        explorer_url=result.explorer_url,
+        timestamp=result.timestamp,
+    )
+
+
+# ── XLS-33 MPToken endpoints ──────────────────────────────────────────────────
+
+@router.get("/mpt", response_model=MPTStatus)
+async def get_mpt_status() -> MPTStatus:
+    """Return the COMPLY issuance state and recent attestation audit trail."""
+    settings = get_settings()
+    state = mptoken_tool.get_mpt_state()
+    network = "mock" if settings.use_mock_xrpl else (
+        "devnet" if "devnet" in (settings.mpt_xrpl_endpoint or settings.xrpl_endpoint)
+        else "testnet"
+    )
+    attestations = [
+        MPTAttestationRecord(
+            id=a["id"],
+            issuance_id=a["issuance_id"],
+            recipient=a["recipient"],
+            payment_id=a["payment_id"],
+            amount_settled=a["amount_settled"],
+            tx_hash=a["tx_hash"],
+            explorer_url=a.get("explorer_url"),
+            timestamp=datetime.fromisoformat(a["timestamp"]),
+        )
+        for a in state["attestations"][-20:]
+    ]
+    return MPTStatus(
+        issuance_id=settings.mpt_issuance_id or state["issuance_id"],
+        enabled=settings.mpt_enabled,
+        network=network,
+        metadata_hex=mptoken_tool._COMPLY_METADATA,
+        total_minted=state["total_minted"],
+        authorized_count=len(state["authorized"]),
+        recent_attestations=list(reversed(attestations)),
+    )
+
+
+@router.post("/mpt/issuance", response_model=MPTStatus, status_code=201)
+async def create_mpt_issuance() -> MPTStatus:
+    """MPTokenIssuanceCreate — provision the COMPLY compliance-attestation issuance.
+
+    In mock mode this is instantaneous. In real mode it submits a
+    MPTokenIssuanceCreate tx on the configured network (Testnet by default).
+    The returned issuance_id should be stored in MPT_ISSUANCE_ID.
+    """
+    result = await mptoken_tool.create_issuance()
+    # Delegate to get_mpt_status so the response shape is always consistent.
+    return await get_mpt_status()
+
+
+@router.post("/mpt/authorize", response_model=MPTAttestationRecord, status_code=201)
+async def authorize_mpt_holder(request: MPTAuthorizeRequest) -> MPTAttestationRecord:
+    """MPTokenAuthorize — authorize an address to receive COMPLY attestation tokens.
+
+    In mock mode adds the holder to the in-memory authorized list.
+    In real mode submits MPTokenAuthorize from the treasury account.
+    """
+    settings = get_settings()
+    issuance_id = settings.mpt_issuance_id or mptoken_tool.get_mpt_state().get("issuance_id")
+    if not issuance_id:
+        raise HTTPException(
+            status_code=409,
+            detail="No MPT issuance yet. Call POST /treasury/mpt/issuance first.",
+        )
+    result = await mptoken_tool.authorize_holder(issuance_id, request.holder)
+    return MPTAttestationRecord(
+        id=str(uuid.uuid4()),
+        issuance_id=result.issuance_id,
+        recipient=result.recipient,
+        payment_id="",
+        amount_settled=0.0,
+        tx_hash=result.tx_hash,
+        explorer_url=result.explorer_url,
+        timestamp=result.timestamp,
+    )
+
+
+@router.post("/mpt/mint", response_model=MPTAttestationRecord, status_code=201)
+async def mint_mpt_attestation() -> MPTAttestationRecord:
+    """Mint 1 COMPLY token — manual trigger (agent does this automatically per payment).
+
+    Useful for testing the flow from the dashboard without waiting for an
+    agent cycle to complete.
+    """
+    settings = get_settings()
+    issuance_id = settings.mpt_issuance_id or mptoken_tool.get_mpt_state().get("issuance_id")
+    if not issuance_id:
+        raise HTTPException(
+            status_code=409,
+            detail="No MPT issuance yet. Call POST /treasury/mpt/issuance first.",
+        )
+    result = await mptoken_tool.mint_attestation(
+        issuance_id=issuance_id,
+        recipient=settings.mpt_recipient_address or "rDEMO_RECIPIENT",
+        payment_id="manual",
+        amount_settled=0.0,
+    )
+    return MPTAttestationRecord(
+        id=str(uuid.uuid4()),
+        issuance_id=result.issuance_id,
+        recipient=result.recipient,
+        payment_id="manual",
+        amount_settled=0.0,
         tx_hash=result.tx_hash,
         explorer_url=result.explorer_url,
         timestamp=result.timestamp,

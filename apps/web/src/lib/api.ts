@@ -4,6 +4,9 @@ import type {
   CredentialLogEntry,
   CredentialRecord,
   CredentialStatus,
+  MPTAttestationRecord,
+  MPTAuthorizeRequest,
+  MPTStatus,
   Payment,
   PaymentIntent,
   QuoteRequest,
@@ -94,6 +97,17 @@ export const api = {
   triggerTreasuryRun: () =>
     request<TreasuryAgentRun>("/treasury/run", { method: "POST" }),
   listTreasuryRuns: () => request<TreasuryAgentRun[]>("/treasury/runs"),
+
+  // XLS-33 MPToken compliance attestation.
+  getMptStatus: () => request<MPTStatus>("/treasury/mpt"),
+  createMptIssuance: () => request<MPTStatus>("/treasury/mpt/issuance", { method: "POST" }),
+  authorizeMptHolder: (req: MPTAuthorizeRequest) =>
+    request<MPTAttestationRecord>("/treasury/mpt/authorize", {
+      method: "POST",
+      body: JSON.stringify(req),
+    }),
+  mintMptAttestation: () =>
+    request<MPTAttestationRecord>("/treasury/mpt/mint", { method: "POST" }),
 
   // XLS-65 vault.
   getVaultStatus: () => request<VaultStatus>("/treasury/vault"),

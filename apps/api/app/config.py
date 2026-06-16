@@ -89,6 +89,18 @@ class Settings(BaseSettings):
     vault_recall_threshold_usd: float = 1_000.0
     vault_id: str = ""  # hex LedgerIndex of the Vault object; set after VaultCreate
 
+    # XLS-33 MPTokens — COMPLY compliance-attestation issuance.
+    # Disabled by default. XLS-33 is available on Testnet and Devnet.
+    # mpt_xrpl_endpoint defaults to xrpl_endpoint when empty.
+    # mpt_issuance_id is set after MPTokenIssuanceCreate.
+    # mpt_recipient_address + mpt_recipient_seed enable real-mode minting
+    # (the recipient must call their own MPTokenAuthorize first).
+    mpt_enabled: bool = False
+    mpt_xrpl_endpoint: str = ""  # defaults to xrpl_endpoint when empty
+    mpt_issuance_id: str = ""
+    mpt_recipient_address: str = ""
+    mpt_recipient_seed: str = ""
+
     # Comma-separated browser origins allowed to call the API.
     cors_origins: str = (
         "http://localhost:5173,"

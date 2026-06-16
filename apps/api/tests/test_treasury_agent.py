@@ -67,6 +67,12 @@ def _settings(**overrides):
         "vault_sweep_threshold_usd": 5_000.0,
         "vault_recall_threshold_usd": 1_000.0,
         "vault_id": "",
+        # XLS-33 MPTokens — disabled by default in agent tests
+        "mpt_enabled": False,
+        "mpt_xrpl_endpoint": "",
+        "mpt_issuance_id": "",
+        "mpt_recipient_address": "",
+        "mpt_recipient_seed": "",
     }
     data.update(overrides)
     return SimpleNamespace(**data)
@@ -100,12 +106,14 @@ def _patch_settings(monkeypatch, **overrides):
     import app.tools.compliance as compliance
     import app.tools.credentials as creds
     import app.tools.audit as audit
+    import app.tools.mptoken as mpt
     monkeypatch.setattr(ta, "get_settings", lambda: s)
     monkeypatch.setattr(orch, "get_settings", lambda: s)
     monkeypatch.setattr(routing, "get_settings", lambda: s)
     monkeypatch.setattr(compliance, "get_settings", lambda: s)
     monkeypatch.setattr(creds, "get_settings", lambda: s)
     monkeypatch.setattr(audit, "get_settings", lambda: s)
+    monkeypatch.setattr(mpt, "get_settings", lambda: s)
 
 
 # ── evaluate_goal (pure, no I/O) ──────────────────────────────────────────────

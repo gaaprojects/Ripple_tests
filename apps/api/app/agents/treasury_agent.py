@@ -24,11 +24,13 @@ from datetime import datetime, timezone
 from ..config import get_settings
 from ..schemas import (
     PaymentIntent,
+    PaymentStatus,
     ReceiverEntityType,
     TreasuryAgentRun,
     TreasuryGoal,
     TreasuryGoalCreate,
 )
+from ..tools import mptoken as mptoken_tool
 from ..tools import vault as vault_tool
 from . import orchestrator
 
@@ -147,6 +149,9 @@ async def run(goals: list[TreasuryGoal] | None = None) -> TreasuryAgentRun:
             f"  → payment {payment.id[:8]}… status={payment.status.value}"
             + (f", rule={payment.policy_decision.rule_fired}" if payment.policy_decision and payment.policy_decision.rule_fired else "")
         )
+        # Mint compliance attestation for every auto-settled payment.
+        if settings.mpt_enabled and payment.status == PaymentStatus.settled:
+            await _mint_compliance_attestation(payment, trigger_log, settings)
         # Update last_triggered_at on the stored goal.
         _goals[goal.id] = goal.model_copy(update={"last_triggered_at": now})
 
@@ -295,6 +300,35 @@ async def _vault_sweep(trigger_log: list[str], settings) -> None:
             f"within sweep range [{settings.vault_recall_threshold_usd:,.0f}–"
             f"{settings.vault_sweep_threshold_usd:,.0f}] — no sweep needed."
         )
+
+
+async def _mint_compliance_attestation(payment, trigger_log: list[str], settings) -> None:
+    """Mint 1 COMPLY MPToken to the payment recipient as on-chain compliance proof.
+
+    Called only when mpt_enabled=True and the payment auto-settled (status=settled).
+    The issuance_id comes from settings or the in-memory MPT state. If neither
+    is configured the step is skipped with a log message pointing to the setup API.
+    """
+    state = mptoken_tool.get_mpt_state()
+    issuance_id = settings.mpt_issuance_id or state["issuance_id"]
+    if not issuance_id and not settings.use_mock_xrpl:
+        trigger_log.append(
+            "[mpt] No issuance_id — POST /treasury/mpt/issuance to create COMPLY issuance."
+        )
+        return
+    try:
+        result = await mptoken_tool.mint_attestation(
+            issuance_id=issuance_id or "MOCK_ISSUANCE",
+            recipient=payment.intent.to,
+            payment_id=payment.id,
+            amount_settled=payment.intent.amount,
+        )
+        trigger_log.append(
+            f"  [mpt] COMPLY attestation minted → {payment.intent.to[:20]}… "
+            f"tx={result.tx_hash[:12]}…"
+        )
+    except Exception as exc:
+        trigger_log.append(f"  [mpt] Attestation mint failed: {exc}")
 
 
 def _wallet_balance(settings) -> float:
