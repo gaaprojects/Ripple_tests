@@ -231,6 +231,8 @@ class Payment(CamelModel):
     approval_signature: str | None = None
     tx_hash: str | None = None
     explorer_url: str | None = None
+    # Second explorer (bithomp) link for cross-checking the same tx hash.
+    explorer_url_secondary: str | None = None
     audit_explanation: str | None = None
     receipt_hash: str | None = None
     created_at: datetime

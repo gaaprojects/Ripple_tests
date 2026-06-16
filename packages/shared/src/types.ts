@@ -168,6 +168,8 @@ export interface Payment {
   approvalSignature: string | null;
   txHash: string | null;
   explorerUrl: string | null;
+  // Second explorer (bithomp) link for cross-checking the same tx hash.
+  explorerUrlSecondary: string | null;
   auditExplanation: string | null;
   receiptHash: string | null;
   createdAt: string;

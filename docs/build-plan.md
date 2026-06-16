@@ -32,6 +32,19 @@ line; issuer = COMPLIANCE_ISSUER (`rEF5…6uew`); RLUSD hex
    `TOKEN_ISSUER_ADDRESS` = issuer). Finding to record: routing has no real FX path
    for RLUSD (`base==quote` short-circuit) — addressed in Phase 2.2.
 
+## Progress log
+- **Phase 2.2 — landed in code (Testnet proof pending network access).** Fixed the
+  dead `POLICY_THRESHOLD_USD`/`POLICY_COMPLIANCE_FLAG_SCORE`: the orchestrator now
+  USD-normalizes the amount (`routing.convert_to_usd`) and passes the configured
+  threshold + flag score to `engine.evaluate`. Added on-ledger compliance `Memos`
+  (AML score, `rule_fired`, pre-submission `receipt_hash`) to the auto-settle Payment
+  and the EscrowCreate via `execution.ComplianceMemo` + `build_memo_fields`
+  (dependency-free, unit-tested) and `receipt.compute_decision_hash` (stable before
+  submission). Added the second explorer (`xrpl_client.bithomp_tx_url`) surfaced as
+  `Payment.explorerUrlSecondary`. **49/49 unit tests pass.** Still TODO on a funded
+  Testnet: submit one settle + one escrow and confirm the Memos + both explorer
+  links resolve.
+
 ## Phase 2 — value-add features
 1. **Credentials as a first-class gate** — default `CREDENTIAL_KYC_ENABLED=true`;
    orchestrator already wires `credentials.verify_kyc` → `compliance.KYC_MISSING_SCORE`
