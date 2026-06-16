@@ -56,36 +56,63 @@ async def process_payment(intent: PaymentIntent) -> Payment:
     payment.compliance = screen
     _log(payment_id, screen.explanation)
 
-    decision = engine.evaluate(route.dest_amount, screen.aml_score, sanctioned=screen.sanctioned)
+    # Policy compares against a USD threshold, so normalize the source amount to
+    # USD first — never hand it the settlement-currency amount (e.g. XRP). The
+    # threshold and flag score come from config; the engine still owns the rule.
+    amount_usd = await routing.convert_to_usd(intent.amount, intent.currency)
+    decision = engine.evaluate(
+        amount_usd,
+        screen.aml_score,
+        sanctioned=screen.sanctioned,
+        threshold_usd=settings.policy_threshold_usd,
+        flag_score=settings.policy_compliance_flag_score,
+    )
     payment.policy_decision = decision
     payment.audit_explanation = await audit.write_audit(route, screen, decision)
+    _log(
+        payment_id,
+        (
+            f"Policy: ${amount_usd:,.2f} vs ${settings.policy_threshold_usd:,.2f} threshold, "
+            f"AML {screen.aml_score} vs {settings.policy_compliance_flag_score} flag → "
+            f"{'block' if decision.blocked else 'approval required' if decision.requires_approval else 'auto-settle'}."
+        ),
+    )
+
+    # Anchor the deterministic decision trail on-ledger via transaction Memos.
+    memo = execution.ComplianceMemo(
+        aml_score=screen.aml_score,
+        rule_fired=decision.rule_fired,
+        receipt_hash=receipt.compute_decision_hash(payment),
+    )
 
     if decision.blocked:
         await _block(payment)
     elif decision.requires_approval:
-        await _escalate(payment, route, intent)
+        await _escalate(payment, route, intent, memo)
     else:
-        await _settle(payment, route, intent)
+        await _settle(payment, route, intent, memo)
 
     payment.updated_at = _now()
     return store.save(payment)
 
 
-async def _settle(payment: Payment, route, intent: PaymentIntent) -> None:
-    result = await execution.execute_payment(payment.id, intent, route)
+async def _settle(payment: Payment, route, intent: PaymentIntent, memo: "execution.ComplianceMemo") -> None:
+    result = await execution.execute_payment(payment.id, intent, route, memo=memo)
     payment.status = PaymentStatus.settled
     payment.tx_hash = result.tx_hash
     payment.explorer_url = result.explorer_url
+    payment.explorer_url_secondary = _secondary_explorer(result.tx_hash, result.explorer_url)
     _log(payment.id, f"Auto-settled. Tx {result.tx_hash[:12]}…")
     payment.receipt_hash = receipt.compute_receipt_hash(payment)
 
 
-async def _escalate(payment: Payment, route, intent: PaymentIntent) -> None:
-    escrow = await execution.lock_payment(payment.id, intent, route)
+async def _escalate(payment: Payment, route, intent: PaymentIntent, memo: "execution.ComplianceMemo") -> None:
+    escrow = await execution.lock_payment(payment.id, intent, route, memo=memo)
     payment.status = PaymentStatus.pending_approval
     payment.escrow_sequence = escrow.escrow_sequence
     payment.tx_hash = escrow.tx_hash
     payment.explorer_url = escrow.explorer_url
+    payment.explorer_url_secondary = _secondary_explorer(escrow.tx_hash, escrow.explorer_url)
     reason = "; ".join(payment.policy_decision.reasons) if payment.policy_decision else ""
     _log(payment.id, f"Locked on-chain pending hardware approval ({reason}).")
 
@@ -113,6 +140,7 @@ async def release_payment(payment_id: str, signature: str) -> Payment:
     payment.approval_signature = signature
     payment.tx_hash = result.tx_hash
     payment.explorer_url = result.explorer_url
+    payment.explorer_url_secondary = _secondary_explorer(result.tx_hash, result.explorer_url)
     payment.updated_at = _now()
     _log(payment_id, f"Firefly signature verified. Released. Tx {result.tx_hash[:12]}…")
     payment.receipt_hash = receipt.compute_receipt_hash(payment)
@@ -160,6 +188,19 @@ class InvalidApprovalState(Exception):
 
 class SignatureRejected(Exception):
     pass
+
+
+def _secondary_explorer(tx_hash: str | None, primary_url: str | None) -> str | None:
+    """Cross-check explorer link (bithomp), tied to the primary's liveness.
+
+    Returns None whenever the primary is None (mock mode / no real tx), so a
+    stale fake hash never produces a dead second link.
+    """
+    if not tx_hash or primary_url is None:
+        return None
+    from ..xrpl_client import bithomp_tx_url
+
+    return bithomp_tx_url(tx_hash)
 
 
 def _log(payment_id: str, message: str) -> None:

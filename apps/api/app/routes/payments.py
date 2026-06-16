@@ -111,4 +111,4 @@ def _public_payment(payment: Payment) -> Payment:
     """Hide stale fake explorer links from older mock-mode payment rows."""
     if not get_settings().use_mock_xrpl or payment.explorer_url is None:
         return payment
-    return payment.model_copy(update={"explorer_url": None})
+    return payment.model_copy(update={"explorer_url": None, "explorer_url_secondary": None})

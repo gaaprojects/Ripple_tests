@@ -71,3 +71,19 @@ async def test_cheapest_alternative_picks_lowest_source_amount():
 
 async def test_cheapest_alternative_none_when_no_paths():
     assert routing._cheapest_alternative([{"source_amount": {"value": "1"}}]) is None
+
+
+async def test_convert_to_usd_passthrough_for_usd():
+    # No network call when the source is already USD.
+    assert await routing.convert_to_usd(12_345.67, "USD") == 12_345.67
+    assert await routing.convert_to_usd(100.0, "usd") == 100.0
+
+
+async def test_convert_to_usd_applies_fx_rate(monkeypatch):
+    async def fake_rate(base, quote):
+        assert base == "EUR" and quote == "USD"
+        return 1.1
+
+    monkeypatch.setattr(routing, "_fetch_rate", fake_rate)
+
+    assert await routing.convert_to_usd(1000.0, "EUR") == 1100.0

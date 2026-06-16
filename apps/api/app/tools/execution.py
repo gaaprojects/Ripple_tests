@@ -19,11 +19,16 @@ guard against the partial-payment exploit.
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 
 from .. import xrpl_client
 from ..config import get_settings
 from ..schemas import ExecutionResult, PaymentIntent, PaymentStatus, RouteQuote
+
+# Memo type tag (hex of "compliance/v1") used to find the on-ledger compliance
+# anchor among a transaction's Memos.
+COMPLIANCE_MEMO_TYPE = "compliance/v1"
 
 
 @dataclass
@@ -33,7 +38,55 @@ class EscrowResult:
     explorer_url: str | None
 
 
-async def execute_payment(payment_id: str, intent: PaymentIntent, route: RouteQuote) -> ExecutionResult:
+@dataclass
+class ComplianceMemo:
+    """Deterministic compliance data anchored on-ledger via transaction Memos.
+
+    Built by the orchestrator from the policy/compliance result (never the LLM).
+    `receipt_hash` is the pre-submission decision hash from the receipt tool.
+    """
+
+    aml_score: int
+    rule_fired: str | None
+    receipt_hash: str
+
+
+def build_memo_fields(memo: ComplianceMemo) -> list[dict]:
+    """Hex-encode a compliance memo into XRPL Memo fields (pure, no xrpl dep).
+
+    Returns a single-element list of `{memo_type, memo_data}` dicts with
+    uppercase-hex values, ready to splat into `xrpl.models.transactions.Memo`.
+    Kept dependency-free so it can be unit-tested without loading xrpl-py.
+    """
+    payload = {
+        "aml_score": memo.aml_score,
+        "rule_fired": memo.rule_fired or "none",
+        "receipt_hash": memo.receipt_hash,
+    }
+    data = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return [
+        {
+            "memo_type": COMPLIANCE_MEMO_TYPE.encode().hex().upper(),
+            "memo_data": data.encode().hex().upper(),
+        }
+    ]
+
+
+def _xrpl_memos(memo: ComplianceMemo | None):
+    """Build xrpl Memo models from a ComplianceMemo, or None when absent."""
+    if memo is None:
+        return None
+    from xrpl.models.transactions import Memo
+
+    return [Memo(**fields) for fields in build_memo_fields(memo)]
+
+
+async def execute_payment(
+    payment_id: str,
+    intent: PaymentIntent,
+    route: RouteQuote,
+    memo: ComplianceMemo | None = None,
+) -> ExecutionResult:
     """Direct token Payment for an auto-settled payment."""
     settings = get_settings()
     if settings.use_mock_xrpl:
@@ -66,6 +119,9 @@ async def execute_payment(payment_id: str, intent: PaymentIntent, route: RouteQu
     if route.deliver_min is not None:
         kwargs["deliver_min"] = _token_amount(settings.token_currency, route.deliver_min, settings)
         kwargs["flags"] = PaymentFlag.TF_PARTIAL_PAYMENT
+    memos = _xrpl_memos(memo)
+    if memos is not None:
+        kwargs["memos"] = memos
 
     async with xrpl_client.async_client() as client:
         response = await submit_and_wait(Payment(**kwargs), client, wallet)
@@ -73,7 +129,12 @@ async def execute_payment(payment_id: str, intent: PaymentIntent, route: RouteQu
     return _execution_result(response, settled_status=PaymentStatus.settled)
 
 
-async def lock_payment(payment_id: str, intent: PaymentIntent, route: RouteQuote) -> EscrowResult:
+async def lock_payment(
+    payment_id: str,
+    intent: PaymentIntent,
+    route: RouteQuote,
+    memo: ComplianceMemo | None = None,
+) -> EscrowResult:
     """EscrowCreate to lock funds for a payment that needs hardware approval."""
     settings = get_settings()
     if settings.use_mock_xrpl:
@@ -95,12 +156,16 @@ async def lock_payment(payment_id: str, intent: PaymentIntent, route: RouteQuote
     # ledger closes ~4s later); +1s lands in the past and XRPL returns
     # tecNO_PERMISSION. Give margin for ledger latency.
     finish_after = datetime_to_ripple_time(datetime.now(timezone.utc) + timedelta(seconds=9))
-    tx = EscrowCreate(
-        account=wallet.address,
-        destination=intent.to,
-        amount=_token_amount(settings.token_currency, route.dest_amount, settings),
-        finish_after=finish_after,
-    )
+    escrow_kwargs: dict = {
+        "account": wallet.address,
+        "destination": intent.to,
+        "amount": _token_amount(settings.token_currency, route.dest_amount, settings),
+        "finish_after": finish_after,
+    }
+    memos = _xrpl_memos(memo)
+    if memos is not None:
+        escrow_kwargs["memos"] = memos
+    tx = EscrowCreate(**escrow_kwargs)
     async with xrpl_client.async_client() as client:
         # `sign` is synchronous in xrpl-py 4.x; only autofill/submit are async.
         signed = sign(await autofill(tx, client), wallet)

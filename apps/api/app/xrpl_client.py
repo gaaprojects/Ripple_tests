@@ -15,6 +15,9 @@ from typing import Any
 from .config import get_settings
 
 TESTNET_EXPLORER = "https://testnet.xrpl.org"
+# Cross-check explorer. xrpscan has no Testnet view, so bithomp's Testnet
+# instance is used as the second source for the verification matrix.
+BITHOMP_TESTNET_EXPLORER = "https://test.bithomp.com"
 
 # lsfAccepted on a Credential ledger entry: the subject has accepted the
 # credential, so it is usable. An unaccepted credential must be ignored.
@@ -27,6 +30,15 @@ def explorer_tx_url(tx_hash: str) -> str:
 
 def explorer_account_url(address: str) -> str:
     return f"{TESTNET_EXPLORER}/accounts/{address}"
+
+
+def bithomp_tx_url(tx_hash: str) -> str:
+    """Second explorer link for a transaction (cross-check source)."""
+    return f"{BITHOMP_TESTNET_EXPLORER}/explorer/{tx_hash}"
+
+
+def bithomp_account_url(address: str) -> str:
+    return f"{BITHOMP_TESTNET_EXPLORER}/explorer/{address}"
 
 
 def async_client():

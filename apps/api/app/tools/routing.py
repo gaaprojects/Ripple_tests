@@ -29,6 +29,19 @@ async def get_fx_path(intent: PaymentIntent, settle_currency: str) -> RouteQuote
     return await _attach_xrpl_path(intent, settle_currency, quote)
 
 
+async def convert_to_usd(amount: float, currency: str) -> float:
+    """USD-normalize a source amount for the policy threshold comparison.
+
+    Deterministic: the policy engine compares against a USD threshold
+    (`POLICY_THRESHOLD_USD`), so the amount handed to it must be in USD too —
+    not the settlement-currency amount. Pure FX, no policy logic here.
+    """
+    if currency.upper() == "USD":
+        return amount
+    rate = await _fetch_rate(currency, "USD")
+    return round(amount * rate, 2)
+
+
 async def quote_amount(amount: float, source_currency: str, settle_currency: str) -> RouteQuote:
     """Return a deterministic quote preview for a source amount and currency."""
     rate = await _fetch_rate(source_currency, settle_currency)
