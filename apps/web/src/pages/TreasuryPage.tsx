@@ -8,7 +8,7 @@ const CURRENCIES = ["USD", "EUR", "CHF", "GBP"];
 const DEFAULT_GOAL: TreasuryGoalCreate = {
   name: "Monthly supplier payment",
   beneficiaryName: "Acme Supplies AG",
-  beneficiaryAddress: "rVENDOR0000000000000000000000000000",
+  beneficiaryAddress: "rwjNyXSKQ5Rt6StJHHPzdHY5KA8UqYjBuC", // funded Testnet counterparty (holds KYC → auto-settles)
   beneficiaryCountry: "US",
   receiverEntityType: "company",
   amount: 1000,

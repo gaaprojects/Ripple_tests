@@ -8,18 +8,24 @@ interface Props {
   disabled: boolean;
 }
 
-const TREASURY = "rTREASURY00000000000000000000000000";
+// Real funded Testnet wallets (from the repo-root .env). The treasury wallet is
+// the only on-ledger signer; the "from" account is informational. Recipients map
+// to the three demo counterparties so each policy branch is reachable:
+//   OK  → holds an accepted XLS-70 KYC credential → auto-settles
+//   NEW → no credential → escalates to a Firefly-locked escrow (inline KYC retry)
+//   sanctioned NAME → blocked outright by the deterministic screen
+const TREASURY = "rLJEyCHnzFqVyqRKKtb76NN1scRMWimtGM";
 const QUOTE_REFRESH_MS = 15000;
 
 const SENDERS = [
-  { label: "Main Treasury", owner: "John Doe", country: "CH", account: TREASURY, balance: 184250 },
-  { label: "Operating USD", owner: "Acme AG", country: "CH", account: "rOPERATING000000000000000000000000", balance: 52800 },
+  { label: "Main Treasury", owner: "Demo Corp Treasury", country: "CH", account: TREASURY, balance: 184250 },
+  { label: "Operating USD", owner: "Demo Corp Ops", country: "CH", account: TREASURY, balance: 52800 },
 ];
 
 const RECIPIENTS = [
-  { label: "Vendor Alpha", country: "US", entityType: "company" as const, account: "rVENDOR0000000000000000000000000000" },
-  { label: "Supplier Zurich", country: "CH", entityType: "company" as const, account: "rSUPPLIER000000000000000000000000000" },
-  { label: "Custom recipient", country: "GB", entityType: "company" as const, account: "rCUSTOM0000000000000000000000000000" },
+  { label: "Acme Supplies AG", country: "US", entityType: "company" as const, account: "rwjNyXSKQ5Rt6StJHHPzdHY5KA8UqYjBuC" },
+  { label: "Globex Trading Ltd", country: "GB", entityType: "company" as const, account: "rnt6pfdVx7cRsSrzm38783o7H4unfkpRqv" },
+  { label: "ACME Shell Co", country: "RU", entityType: "company" as const, account: "rDabdgRBdnms9zkbNtaLaVwqJuSbxjgroC" },
 ];
 
 const NUMPAD = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "backspace"];

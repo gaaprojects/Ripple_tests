@@ -11,18 +11,21 @@ const STATUS_LABEL: Record<CredentialRecord["status"], string> = {
   failed: "Failed",
 };
 
+// Real funded Testnet counterparties (repo-root .env). The credential-issuing
+// agent signs CredentialCreate with CREDENTIAL_ISSUER_SEED and CredentialAccept
+// with CREDENTIAL_SUBJECT_SEED, so auto-accept works for the "NEW" subject whose
+// seed is configured. The sanctioned entry is refused in code by NAME.
 const SUBJECTS = [
-  { label: "Vendor Alpha (verified)", name: "Vendor Alpha", account: "rVENDOR0000000000000000000000000000" },
-  { label: "Supplier Zurich (verified)", name: "Supplier Zurich", account: "rSUPPLIER000000000000000000000000000" },
-  { label: "Unverified Co — triggers KYC gate", name: "Unverified Co", account: "rUNVERIFIED00000000000000000000000" },
-  { label: "Sanctioned party — issuance refused", name: "ACME Shell Co", account: "rSANCTIONED000000000000000000000000" },
+  { label: "Acme Supplies AG — KYC present", name: "Acme Supplies AG", account: "rwjNyXSKQ5Rt6StJHHPzdHY5KA8UqYjBuC" },
+  { label: "Globex Trading Ltd — triggers KYC gate", name: "Globex Trading Ltd", account: "rnt6pfdVx7cRsSrzm38783o7H4unfkpRqv" },
+  { label: "Sanctioned party — issuance refused", name: "ACME Shell Co", account: "rDabdgRBdnms9zkbNtaLaVwqJuSbxjgroC" },
 ];
 
 export function CredentialsPage() {
   const [records, setRecords] = useState<CredentialRecord[]>([]);
-  const [subjectIndex, setSubjectIndex] = useState(2); // default: unverified — shows the gate
-  const [subject, setSubject] = useState(SUBJECTS[2].account);
-  const [subjectName, setSubjectName] = useState(SUBJECTS[2].name);
+  const [subjectIndex, setSubjectIndex] = useState(1); // default: no-credential subject — shows the gate
+  const [subject, setSubject] = useState(SUBJECTS[1].account);
+  const [subjectName, setSubjectName] = useState(SUBJECTS[1].name);
   const [credentialType, setCredentialType] = useState("KYC");
   const [uri, setUri] = useState("https://kyc.example/vc/123");
   const [autoAccept, setAutoAccept] = useState(true);
