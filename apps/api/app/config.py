@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     # can push the payment to hardware approval — code decides, never the LLM).
     # `credential_issuer_seed` lets the treasury act as the issuer for
     # CredentialCreate; never commit a real seed.
-    credential_kyc_enabled: bool = False
+    credential_kyc_enabled: bool = True
     credential_type: str = "KYC"
     credential_issuer_address: str = ""
     credential_issuer_seed: str = ""
@@ -68,6 +68,38 @@ class Settings(BaseSettings):
     # When true, the deliberate-tamper demo endpoint is available. Never enable
     # in production — it exists solely to prove signature binding on stage.
     demo_mode: bool = False
+
+    # Autonomous treasury agent. `agent_max_amount_usd` is a defense-in-depth cap:
+    # the agent will not initiate a payment whose source amount (in the goal's
+    # currency) exceeds this before even calling the orchestrator. The policy gate
+    # still runs after that and may escalate large amounts to Firefly approval.
+    agent_enabled: bool = True
+    agent_max_amount_usd: float = 50_000.0
+    # Country code the treasury agent reports as its own origin (CH for SwissHacks).
+    agent_sender_country: str = "CH"
+
+    # XLS-65 Single Asset Vault + XLS-66 yield. Disabled by default — requires
+    # the XLS-65 amendment which is available on Devnet but may not be on
+    # Testnet yet. vault_id is set after the first VaultCreate and stored here.
+    # sweep: deposit excess above vault_sweep_threshold_usd on each agent cycle;
+    # recall: withdraw when wallet balance falls below vault_recall_threshold_usd.
+    vault_enabled: bool = False
+    vault_xrpl_endpoint: str = "wss://s.devnet.rippletest.net:51233"
+    vault_sweep_threshold_usd: float = 5_000.0
+    vault_recall_threshold_usd: float = 1_000.0
+    vault_id: str = ""  # hex LedgerIndex of the Vault object; set after VaultCreate
+
+    # XLS-33 MPTokens — COMPLY compliance-attestation issuance.
+    # Disabled by default. XLS-33 is available on Testnet and Devnet.
+    # mpt_xrpl_endpoint defaults to xrpl_endpoint when empty.
+    # mpt_issuance_id is set after MPTokenIssuanceCreate.
+    # mpt_recipient_address + mpt_recipient_seed enable real-mode minting
+    # (the recipient must call their own MPTokenAuthorize first).
+    mpt_enabled: bool = False
+    mpt_xrpl_endpoint: str = ""  # defaults to xrpl_endpoint when empty
+    mpt_issuance_id: str = ""
+    mpt_recipient_address: str = ""
+    mpt_recipient_seed: str = ""
 
     # Comma-separated browser origins allowed to call the API.
     cors_origins: str = (

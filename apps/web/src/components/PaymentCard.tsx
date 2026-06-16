@@ -48,7 +48,7 @@ export function PaymentCard({
   tampering,
   tamperError,
 }: Props) {
-  const { intent, compliance, policyDecision, status, explorerUrl } = payment;
+  const { intent, compliance, policyDecision, status, explorerUrl, explorerUrlSecondary } = payment;
   const isTerminal = TERMINAL.has(status);
   const topSanctionsMatch = compliance?.sanctionsMatches[0];
   const publicIntel = compliance?.publicIntel;
@@ -132,7 +132,12 @@ export function PaymentCard({
 
       {explorerUrl && (
         <a href={explorerUrl} target="_blank" rel="noreferrer">
-          View on testnet explorer
+          testnet.xrpl.org
+        </a>
+      )}
+      {explorerUrlSecondary && (
+        <a href={explorerUrlSecondary} target="_blank" rel="noreferrer">
+          test.bithomp.com
         </a>
       )}
 

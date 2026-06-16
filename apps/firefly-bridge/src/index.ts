@@ -6,35 +6,63 @@ import cors from "cors";
 import express from "express";
 import type { BridgeSignRequest, BridgeSignResponse } from "@treasury/shared";
 
-import { MockFireflyDevice } from "./device.js";
+import { MockFireflyDevice, SerialFireflyDevice } from "./device.js";
+import type { FireflyDevice } from "./device.js";
 
-// Load the repo-root .env so FIREFLY_MOCK_PRIVATE_KEY (and BRIDGE_PORT) are
-// available without manually exporting them. Real exported env vars win, so we
-// only fall back to the file when the key isn't already set. Uses Node's
-// built-in loader (>=20.12); a missing file or older Node is a no-op.
+// Load the repo-root .env so Firefly env vars are available without manually
+// exporting them. Real exported env vars win. Uses Node's built-in loader
+// (>=20.12); a missing file or older Node is a no-op.
 const ROOT_ENV = resolve(dirname(fileURLToPath(import.meta.url)), "../../../.env");
 const loadEnvFile = (process as { loadEnvFile?: (path: string) => void }).loadEnvFile;
-if (!process.env.FIREFLY_MOCK_PRIVATE_KEY && loadEnvFile && existsSync(ROOT_ENV)) {
+if (loadEnvFile && existsSync(ROOT_ENV)) {
   loadEnvFile(ROOT_ENV);
 }
 
 const PORT = Number(process.env.BRIDGE_PORT ?? 4747);
-const MOCK_KEY = process.env.FIREFLY_MOCK_PRIVATE_KEY;
 
-if (!MOCK_KEY) {
-  throw new Error(
-    "FIREFLY_MOCK_PRIVATE_KEY is not set. Run `npm run keygen --workspace apps/firefly-bridge` " +
-      "and put the private key here and the public key in the API's FIREFLY_PUBLIC_KEY.",
-  );
+// DEVICE_MODE selects the Firefly adapter:
+//   simulator (default) — signs with a local secp256k1 key (no hardware needed)
+//   hardware            — drives a real Firefly (ESP32-C3) over USB/serial
+const MODE = (process.env.DEVICE_MODE ?? "simulator") as "hardware" | "simulator";
+
+let device: FireflyDevice;
+
+if (MODE === "hardware") {
+  const serialPath = process.env.BRIDGE_SERIAL_PORT;
+  const pubKeyHex = process.env.FIREFLY_PUBLIC_KEY;
+  if (!serialPath) {
+    throw new Error(
+      "BRIDGE_SERIAL_PORT is required when DEVICE_MODE=hardware " +
+        "(e.g. /dev/ttyUSB0 on Linux, /dev/tty.usbserial-* on macOS, COM3 on Windows)",
+    );
+  }
+  if (!pubKeyHex) {
+    throw new Error(
+      "FIREFLY_PUBLIC_KEY is required when DEVICE_MODE=hardware. " +
+        "The device reports its public key in the sign response; " +
+        "run one sign, copy the publicKey field, and set it here + in the API.",
+    );
+  }
+  device = new SerialFireflyDevice(serialPath, pubKeyHex);
+  console.log(`[firefly] Device mode: hardware (${serialPath})`);
+} else {
+  const mockKey = process.env.FIREFLY_MOCK_PRIVATE_KEY;
+  if (!mockKey) {
+    throw new Error(
+      "FIREFLY_MOCK_PRIVATE_KEY is not set. Run `npm run keygen --workspace apps/firefly-bridge` " +
+        "and put the private key here and the public key in the API's FIREFLY_PUBLIC_KEY.",
+    );
+  }
+  device = new MockFireflyDevice(mockKey);
+  console.log("[firefly] Device mode: simulator (MockFireflyDevice)");
 }
 
-const device = new MockFireflyDevice(MOCK_KEY);
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok", publicKey: device.publicKeyHex() });
+  res.json({ status: "ok", mode: MODE, publicKey: device.publicKeyHex() });
 });
 
 app.post("/sign", async (req, res) => {
@@ -43,16 +71,17 @@ app.post("/sign", async (req, res) => {
     res.status(400).json({ error: "paymentId, amount, currency, and dest are required" });
     return;
   }
-  // Print what the device is being asked to approve — stand-in for the hardware screen.
-  console.log(
-    `[firefly] ┌─ APPROVE REQUEST ─────────────────────────────────┐`,
-  );
+  console.log(`[firefly] ┌─ APPROVE REQUEST ─────────────────────────────────┐`);
   console.log(`[firefly] │  Amount:    ${body.amount.toFixed(2)} ${body.currency}`);
   console.log(`[firefly] │  To:        ${body.dest}`);
   console.log(`[firefly] │  Reference: ${body.reference ?? "(none)"}`);
   console.log(`[firefly] │  Payment:   ${body.paymentId}`);
   console.log(`[firefly] └───────────────────────────────────────────────────┘`);
-  console.log(`[firefly] Awaiting button press…`);
+  if (MODE === "hardware") {
+    console.log(`[firefly] Waiting for physical button press on device…`);
+  } else {
+    console.log(`[firefly] Awaiting button press… (simulator: signing immediately)`);
+  }
   try {
     const signed = await device.sign(body);
     const response: BridgeSignResponse = {

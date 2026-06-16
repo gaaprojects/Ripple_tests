@@ -4,11 +4,19 @@ import type {
   CredentialLogEntry,
   CredentialRecord,
   CredentialStatus,
+  MPTAttestationRecord,
+  MPTAuthorizeRequest,
+  MPTStatus,
   Payment,
   PaymentIntent,
   QuoteRequest,
   Receipt,
   RouteQuote,
+  TreasuryAgentRun,
+  TreasuryGoal,
+  TreasuryGoalCreate,
+  VaultOpRecord,
+  VaultStatus,
 } from "@treasury/shared";
 
 const DEFAULT_API_BASE_URL = "http://localhost:8000";
@@ -79,4 +87,39 @@ export const api = {
     request<CredentialRecord>(`/credentials/${id}/verify`, { method: "POST" }),
   verifySubject: (subject: string) =>
     request<CredentialStatus>(`/credentials/verify/${subject}`),
+
+  // Autonomous treasury agent.
+  listTreasuryGoals: () => request<TreasuryGoal[]>("/treasury/goals"),
+  createTreasuryGoal: (goal: TreasuryGoalCreate) =>
+    request<TreasuryGoal>("/treasury/goals", { method: "POST", body: JSON.stringify(goal) }),
+  deleteTreasuryGoal: (id: string) =>
+    request<void>(`/treasury/goals/${id}`, { method: "DELETE" }),
+  triggerTreasuryRun: () =>
+    request<TreasuryAgentRun>("/treasury/run", { method: "POST" }),
+  listTreasuryRuns: () => request<TreasuryAgentRun[]>("/treasury/runs"),
+
+  // XLS-33 MPToken compliance attestation.
+  getMptStatus: () => request<MPTStatus>("/treasury/mpt"),
+  createMptIssuance: () => request<MPTStatus>("/treasury/mpt/issuance", { method: "POST" }),
+  authorizeMptHolder: (req: MPTAuthorizeRequest) =>
+    request<MPTAttestationRecord>("/treasury/mpt/authorize", {
+      method: "POST",
+      body: JSON.stringify(req),
+    }),
+  mintMptAttestation: () =>
+    request<MPTAttestationRecord>("/treasury/mpt/mint", { method: "POST" }),
+
+  // XLS-65 vault.
+  getVaultStatus: () => request<VaultStatus>("/treasury/vault"),
+  createVault: () => request<VaultOpRecord>("/treasury/vault", { method: "POST" }),
+  depositToVault: (amount: number) =>
+    request<VaultOpRecord>("/treasury/vault/deposit", {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
+  withdrawFromVault: (amount: number) =>
+    request<VaultOpRecord>("/treasury/vault/withdraw", {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
 };

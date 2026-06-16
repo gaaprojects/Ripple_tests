@@ -15,6 +15,7 @@ from typing import Any
 from .config import get_settings
 
 TESTNET_EXPLORER = "https://testnet.xrpl.org"
+DEVNET_EXPLORER = "https://devnet.xrpl.org"
 # Cross-check explorer. xrpscan has no Testnet view, so bithomp's Testnet
 # instance is used as the second source for the verification matrix.
 BITHOMP_TESTNET_EXPLORER = "https://test.bithomp.com"
@@ -41,11 +42,18 @@ def bithomp_account_url(address: str) -> str:
     return f"{BITHOMP_TESTNET_EXPLORER}/explorer/{address}"
 
 
-def async_client():
-    """An XRPL async client for the configured endpoint."""
+def async_client(endpoint: str | None = None):
+    """An XRPL async client. Uses configured endpoint when none supplied."""
     from xrpl.asyncio.clients import AsyncWebsocketClient
 
-    return AsyncWebsocketClient(get_settings().xrpl_endpoint)
+    return AsyncWebsocketClient(endpoint or get_settings().xrpl_endpoint)
+
+
+def explorer_tx_url_for(tx_hash: str, endpoint: str) -> str:
+    """Return the right block-explorer link based on the XRPL endpoint in use."""
+    if "devnet" in endpoint:
+        return f"{DEVNET_EXPLORER}/transactions/{tx_hash}"
+    return explorer_tx_url(tx_hash)
 
 
 def credential_type_hex(credential_type: str) -> str:

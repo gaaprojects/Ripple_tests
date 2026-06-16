@@ -182,6 +182,103 @@ export interface AgentLogEntry {
   message: string;
 }
 
+// ── XLS-33 MPTokens — COMPLY compliance-attestation ─────────────────────────
+
+export interface MPTAttestationRecord {
+  id: string;
+  issuanceId: string;
+  recipient: string;
+  paymentId: string;
+  amountSettled: number;
+  txHash: string;
+  explorerUrl: string | null;
+  timestamp: string;
+}
+
+export interface MPTStatus {
+  issuanceId: string | null;
+  enabled: boolean;
+  network: string;        // "mock" | "testnet" | "devnet"
+  metadataHex: string;    // hex-encoded "COMPLY" metadata
+  totalMinted: number;
+  authorizedCount: number;
+  recentAttestations: MPTAttestationRecord[];
+}
+
+export interface MPTAuthorizeRequest {
+  holder: string;         // XRPL address to authorize
+}
+
+// ── XLS-65 Single Asset Vault ────────────────────────────────────────────────
+
+export interface VaultOpRecord {
+  id: string;
+  operation: "create" | "deposit" | "withdraw";
+  amount: number;
+  txHash: string;
+  explorerUrl: string | null;
+  timestamp: string;
+}
+
+export interface VaultStatus {
+  vaultId: string | null;
+  enabled: boolean;
+  network: string; // "mock" | "devnet" | "testnet"
+  deposited: number;
+  shares: number;
+  walletBalance: number;
+  assetCurrency: string;
+  assetIssuer: string | null;
+  sweepThresholdUsd: number;
+  recallThresholdUsd: number;
+  recentOperations: VaultOpRecord[];
+}
+
+// ── Autonomous Treasury Agent ─────────────────────────────────────────────────
+
+export interface TreasuryGoal {
+  id: string;
+  name: string;
+  enabled: boolean;
+  beneficiaryName: string;
+  beneficiaryAddress: string;
+  beneficiaryCountry: string;
+  receiverEntityType: "company" | "individual";
+  amount: number;
+  currency: string;
+  reference: string;
+  purpose: string;
+  triggerIntervalHours: number;
+  lastTriggeredAt: string | null;
+}
+
+export interface TreasuryGoalCreate {
+  name: string;
+  enabled?: boolean;
+  beneficiaryName: string;
+  beneficiaryAddress: string;
+  beneficiaryCountry: string;
+  receiverEntityType?: "company" | "individual";
+  amount: number;
+  currency: string;
+  reference: string;
+  purpose: string;
+  triggerIntervalHours?: number;
+}
+
+export interface TreasuryAgentRun {
+  id: string;
+  startedAt: string;
+  completedAt: string | null;
+  goalsEvaluated: number;
+  goalsTriggered: number;
+  paymentsInitiated: string[]; // payment IDs
+  paymentsSkipped: string[];   // goal IDs
+  triggerLog: string[];
+  narration: string | null;
+  status: string; // "completed" | "error"
+}
+
 // Firefly bridge contract (browser <-> localhost bridge).
 // The bridge derives the digest locally from these fields — WYSIWYS.
 export interface BridgeSignRequest {

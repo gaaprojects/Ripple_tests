@@ -33,6 +33,34 @@ line; issuer = COMPLIANCE_ISSUER (`rEF5…6uew`); RLUSD hex
    for RLUSD (`base==quote` short-circuit) — addressed in Phase 2.2.
 
 ## Progress log
+- **Phase 5 — landed.** New `app/tools/mptoken.py` (MPTokenIssuanceCreate / MPTokenAuthorize / mint_attestation,
+  mock + real paths, same shape as vault.py). xrpl-py 4.5.0 ships `MPTokenIssuanceCreate`,
+  `MPTokenAuthorize`, and `MPTAmount` (for Payment). The COMPLY issuance uses no transfer flags —
+  soulbound compliance badge. Mock mode: full flow in-memory (create, authorize, mint).
+  Real mode: MPTokenIssuanceCreate lands on Testnet (XLS-33 is available on Testnet);
+  MPTokenAuthorize submits from treasury; mint is simulated unless `MPT_RECIPIENT_ADDRESS` +
+  `MPT_RECIPIENT_SEED` are configured (recipient must have opted in first).
+  Treasury agent `run()` now calls `_mint_compliance_attestation()` after each auto-settled
+  payment when `mpt_enabled=True` — deterministic, never the LLM.
+  New routes: `GET /treasury/mpt`, `POST /treasury/mpt/issuance`,
+  `POST /treasury/mpt/authorize`, `POST /treasury/mpt/mint`. MPT section added to TreasuryPage.
+  13 new tests (106/106 total pass). TypeScript typecheck clean.
+- **Phase 3 — landed.** New `app/tools/vault.py` (VaultCreate / VaultDeposit / VaultWithdraw,
+  mock + real paths, same shape as execution.py). xrpl-py 4.5.0 ships these classes natively;
+  real-mode transactions go to `VAULT_XRPL_ENDPOINT` (Devnet by default — XLS-65 is not yet
+  on Testnet). In-memory vault state tracks `deposited`, `shares`, `wallet_balance` for the
+  mock demo. Treasury agent `run()` now calls `_vault_sweep()` on each cycle (deterministic:
+  deposit excess above `vault_sweep_threshold_usd`, recall when below `vault_recall_threshold_usd`).
+  New routes: `GET/POST /treasury/vault`, `POST /treasury/vault/deposit`,
+  `POST /treasury/vault/withdraw`. Vault section added to TreasuryPage. 13 new vault tests
+  (93/93 total pass). Both TS packages typecheck clean.
+- **Phase 4 — landed.** `SerialFireflyDevice` added to `apps/firefly-bridge/src/device.ts`:
+  newline-delimited JSON serial protocol (ESP32-C3, secp256k1); `DEVICE_MODE=hardware|simulator`
+  selects the adapter; `BRIDGE_SERIAL_PORT` + `FIREFLY_PUBLIC_KEY` required in hardware mode.
+  Simulator (`MockFireflyDevice`) continues to work unchanged — same env vars, same keygen script.
+  Server-side `firefly.verify_signature` is **untouched** (signature + public-key byte format is
+  identical). README updated with serial protocol contract and hardware setup instructions.
+  80/80 backend tests pass; both TS packages typecheck clean.
 - **Phase 2.2 — landed in code (Testnet proof pending network access).** Fixed the
   dead `POLICY_THRESHOLD_USD`/`POLICY_COMPLIANCE_FLAG_SCORE`: the orchestrator now
   USD-normalizes the amount (`routing.convert_to_usd`) and passes the configured

@@ -6,12 +6,14 @@ import { signOnFirefly } from "./lib/firefly.js";
 import { CredentialsPage } from "./pages/CredentialsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { TransferPage } from "./pages/TransferPage.js";
+import { TreasuryPage } from "./pages/TreasuryPage.js";
 
-type Route = "/" | "/transfer" | "/credentials";
+type Route = "/" | "/transfer" | "/credentials" | "/treasury";
 
 function currentRoute(): Route {
   if (window.location.pathname === "/transfer") return "/transfer";
   if (window.location.pathname === "/credentials") return "/credentials";
+  if (window.location.pathname === "/treasury") return "/treasury";
   return "/";
 }
 
@@ -45,7 +47,10 @@ export function App() {
 
   const navigate = useCallback((path: string) => {
     const nextRoute: Route =
-      path === "/transfer" ? "/transfer" : path === "/credentials" ? "/credentials" : "/";
+      path === "/transfer" ? "/transfer"
+      : path === "/credentials" ? "/credentials"
+      : path === "/treasury" ? "/treasury"
+      : "/";
     if (window.location.pathname !== nextRoute) {
       window.history.pushState({}, "", nextRoute);
     }
@@ -156,6 +161,9 @@ export function App() {
           <button className={route === "/credentials" ? "active" : ""} type="button" onClick={() => navigate("/credentials")}>
             Credentials
           </button>
+          <button className={route === "/treasury" ? "active" : ""} type="button" onClick={() => navigate("/treasury")}>
+            Agent
+          </button>
         </div>
       </nav>
       <p className="tagline">Autonomous treasury on XRPL. The AI explains; deterministic code decides.</p>
@@ -186,6 +194,7 @@ export function App() {
         />
       )}
       {route === "/credentials" && <CredentialsPage />}
+      {route === "/treasury" && <TreasuryPage />}
 
       {approvingId && (
         <div className="firefly-overlay" role="status" aria-live="polite">
