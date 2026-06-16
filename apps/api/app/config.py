@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     # can push the payment to hardware approval — code decides, never the LLM).
     # `credential_issuer_seed` lets the treasury act as the issuer for
     # CredentialCreate; never commit a real seed.
-    credential_kyc_enabled: bool = False
+    credential_kyc_enabled: bool = True
     credential_type: str = "KYC"
     credential_issuer_address: str = ""
     credential_issuer_seed: str = ""

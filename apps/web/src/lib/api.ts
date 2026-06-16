@@ -9,6 +9,9 @@ import type {
   QuoteRequest,
   Receipt,
   RouteQuote,
+  TreasuryAgentRun,
+  TreasuryGoal,
+  TreasuryGoalCreate,
 } from "@treasury/shared";
 
 const DEFAULT_API_BASE_URL = "http://localhost:8000";
@@ -79,4 +82,14 @@ export const api = {
     request<CredentialRecord>(`/credentials/${id}/verify`, { method: "POST" }),
   verifySubject: (subject: string) =>
     request<CredentialStatus>(`/credentials/verify/${subject}`),
+
+  // Autonomous treasury agent.
+  listTreasuryGoals: () => request<TreasuryGoal[]>("/treasury/goals"),
+  createTreasuryGoal: (goal: TreasuryGoalCreate) =>
+    request<TreasuryGoal>("/treasury/goals", { method: "POST", body: JSON.stringify(goal) }),
+  deleteTreasuryGoal: (id: string) =>
+    request<void>(`/treasury/goals/${id}`, { method: "DELETE" }),
+  triggerTreasuryRun: () =>
+    request<TreasuryAgentRun>("/treasury/run", { method: "POST" }),
+  listTreasuryRuns: () => request<TreasuryAgentRun[]>("/treasury/runs"),
 };

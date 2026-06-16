@@ -191,7 +191,7 @@ export interface TreasuryGoal {
   beneficiaryName: string;
   beneficiaryAddress: string;
   beneficiaryCountry: string;
-  receiverEntityType: ReceiverEntityType;
+  receiverEntityType: "company" | "individual";
   amount: number;
   currency: string;
   reference: string;
@@ -206,7 +206,7 @@ export interface TreasuryGoalCreate {
   beneficiaryName: string;
   beneficiaryAddress: string;
   beneficiaryCountry: string;
-  receiverEntityType?: ReceiverEntityType;
+  receiverEntityType?: "company" | "individual";
   amount: number;
   currency: string;
   reference: string;
