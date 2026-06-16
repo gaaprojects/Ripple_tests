@@ -244,7 +244,7 @@ export function NewPaymentForm({ onSubmit, disabled }: Props) {
             <span>From</span>
             <select value={senderIndex} onChange={(event) => setSenderIndex(Number(event.target.value))} disabled={disabled}>
               {SENDERS.map((option, index) => (
-                <option key={option.account} value={index}>
+                <option key={option.label} value={index}>
                   {option.label} - {option.owner}
                 </option>
               ))}
