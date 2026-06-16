@@ -77,6 +77,28 @@ async def issue(request: CredentialIssueRequest) -> CredentialRecord:
             credential_type=credential_type,
         )
     except Exception as exc:  # network/config errors must not crash the agent
+        # tecDUPLICATE means the credential already exists on-ledger — re-issuing
+        # is a no-op, not a failure. Reflect its real state so the flow is
+        # idempotent (a subject can be "issued KYC" again without an error).
+        if "tecDUPLICATE" in str(exc):
+            _log(record_id, "Credential already exists on-ledger (tecDUPLICATE); checking its status.")
+            status = await credentials.verify_kyc(request.subject)
+            record.verified = status.verified
+            record.accepted = status.verified
+            record.status = (
+                CredentialRecordStatus.verified if status.verified else CredentialRecordStatus.issued
+            )
+            record.audit_explanation = (
+                f"Credential '{credential_type}' already present for {request.subject}; "
+                + ("verified on-ledger." if status.verified else "awaiting subject acceptance.")
+            )
+            _log(record_id, f"Reused existing credential: {status.reason}.")
+            if not status.verified and request.auto_accept:
+                try:
+                    return await accept(record_id)
+                except (NotImplementedError, InvalidCredentialState) as accept_exc:
+                    _log(record_id, f"Auto-accept skipped: {accept_exc}.")
+            return _touch(record)
         record.status = CredentialRecordStatus.failed
         record.refused_reason = f"CredentialCreate failed: {exc}"
         _log(record_id, f"Failed to submit CredentialCreate: {exc}.")
