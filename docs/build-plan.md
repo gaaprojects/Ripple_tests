@@ -33,6 +33,13 @@ line; issuer = COMPLIANCE_ISSUER (`rEF5…6uew`); RLUSD hex
    for RLUSD (`base==quote` short-circuit) — addressed in Phase 2.2.
 
 ## Progress log
+- **Phase 4 — landed.** `SerialFireflyDevice` added to `apps/firefly-bridge/src/device.ts`:
+  newline-delimited JSON serial protocol (ESP32-C3, secp256k1); `DEVICE_MODE=hardware|simulator`
+  selects the adapter; `BRIDGE_SERIAL_PORT` + `FIREFLY_PUBLIC_KEY` required in hardware mode.
+  Simulator (`MockFireflyDevice`) continues to work unchanged — same env vars, same keygen script.
+  Server-side `firefly.verify_signature` is **untouched** (signature + public-key byte format is
+  identical). README updated with serial protocol contract and hardware setup instructions.
+  80/80 backend tests pass; both TS packages typecheck clean.
 - **Phase 2.2 — landed in code (Testnet proof pending network access).** Fixed the
   dead `POLICY_THRESHOLD_USD`/`POLICY_COMPLIANCE_FLAG_SCORE`: the orchestrator now
   USD-normalizes the amount (`routing.convert_to_usd`) and passes the configured
