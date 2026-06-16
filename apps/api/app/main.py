@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import db, store
 from .config import get_settings
-from .routes import credentials, health, payments
+from .routes import credentials, health, payments, treasury
 
 
 @asynccontextmanager
@@ -41,3 +41,4 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(payments.router)
 app.include_router(credentials.router)
+app.include_router(treasury.router)

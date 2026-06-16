@@ -69,6 +69,15 @@ class Settings(BaseSettings):
     # in production — it exists solely to prove signature binding on stage.
     demo_mode: bool = False
 
+    # Autonomous treasury agent. `agent_max_amount_usd` is a defense-in-depth cap:
+    # the agent will not initiate a payment whose source amount (in the goal's
+    # currency) exceeds this before even calling the orchestrator. The policy gate
+    # still runs after that and may escalate large amounts to Firefly approval.
+    agent_enabled: bool = True
+    agent_max_amount_usd: float = 50_000.0
+    # Country code the treasury agent reports as its own origin (CH for SwissHacks).
+    agent_sender_country: str = "CH"
+
     # Comma-separated browser origins allowed to call the API.
     cors_origins: str = (
         "http://localhost:5173,"

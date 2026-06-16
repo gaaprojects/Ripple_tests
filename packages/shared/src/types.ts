@@ -182,6 +182,51 @@ export interface AgentLogEntry {
   message: string;
 }
 
+// ── Autonomous Treasury Agent ─────────────────────────────────────────────────
+
+export interface TreasuryGoal {
+  id: string;
+  name: string;
+  enabled: boolean;
+  beneficiaryName: string;
+  beneficiaryAddress: string;
+  beneficiaryCountry: string;
+  receiverEntityType: ReceiverEntityType;
+  amount: number;
+  currency: string;
+  reference: string;
+  purpose: string;
+  triggerIntervalHours: number;
+  lastTriggeredAt: string | null;
+}
+
+export interface TreasuryGoalCreate {
+  name: string;
+  enabled?: boolean;
+  beneficiaryName: string;
+  beneficiaryAddress: string;
+  beneficiaryCountry: string;
+  receiverEntityType?: ReceiverEntityType;
+  amount: number;
+  currency: string;
+  reference: string;
+  purpose: string;
+  triggerIntervalHours?: number;
+}
+
+export interface TreasuryAgentRun {
+  id: string;
+  startedAt: string;
+  completedAt: string | null;
+  goalsEvaluated: number;
+  goalsTriggered: number;
+  paymentsInitiated: string[]; // payment IDs
+  paymentsSkipped: string[];   // goal IDs
+  triggerLog: string[];
+  narration: string | null;
+  status: string; // "completed" | "error"
+}
+
 // Firefly bridge contract (browser <-> localhost bridge).
 // The bridge derives the digest locally from these fields — WYSIWYS.
 export interface BridgeSignRequest {

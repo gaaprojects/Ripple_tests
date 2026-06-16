@@ -1,0 +1,242 @@
+"""Autonomous Treasury Agent.
+
+Evaluates a configurable set of payment goals and initiates those whose
+deterministic trigger conditions are met. The decision logic is pure Python —
+time elapsed since last trigger and an amount cap — never the LLM. The
+ONLY actuator is `orchestrator.process_payment`, which runs the full
+compliance screen, policy gate, and Firefly hardware veto for large amounts.
+
+The LLM (when an OPENAI_API_KEY is configured) writes one paragraph narrating
+what was evaluated and initiated each cycle. It reports facts — it does not
+decide whether to pay.
+
+Invariant enforced here:
+  evaluate_goal() is a pure function with no I/O. The LLM is called after all
+  decisions are made and only writes the narration. It never touches policy or
+  execution.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+
+from ..config import get_settings
+from ..schemas import (
+    PaymentIntent,
+    ReceiverEntityType,
+    TreasuryAgentRun,
+    TreasuryGoal,
+    TreasuryGoalCreate,
+)
+from . import orchestrator
+
+# In-memory goal registry (survives the process lifetime; loaded from config or
+# populated via the /treasury/goals API).
+_goals: dict[str, TreasuryGoal] = {}
+_runs: list[TreasuryAgentRun] = []
+
+
+# ── Goal registry ─────────────────────────────────────────────────────────────
+
+def add_goal(goal: TreasuryGoal) -> TreasuryGoal:
+    _goals[goal.id] = goal
+    return goal
+
+
+def remove_goal(goal_id: str) -> bool:
+    return _goals.pop(goal_id, None) is not None
+
+
+def get_goal(goal_id: str) -> TreasuryGoal | None:
+    return _goals.get(goal_id)
+
+
+def list_goals() -> list[TreasuryGoal]:
+    return list(_goals.values())
+
+
+def list_runs() -> list[TreasuryAgentRun]:
+    return list(reversed(_runs))
+
+
+def goal_from_create(request: TreasuryGoalCreate) -> TreasuryGoal:
+    return TreasuryGoal(
+        id=str(uuid.uuid4()),
+        **request.model_dump(by_alias=False),
+    )
+
+
+# ── Core deterministic trigger ────────────────────────────────────────────────
+
+def evaluate_goal(
+    goal: TreasuryGoal,
+    now: datetime,
+    agent_max_amount_usd: float,
+) -> tuple[bool, str]:
+    """Decide whether a goal should fire RIGHT NOW. Pure function, no I/O.
+
+    Returns (should_fire, reason). All decisions are deterministic code —
+    never the LLM. The LLM narrates these reasons after the fact.
+    """
+    if not goal.enabled:
+        return False, "goal disabled"
+
+    if goal.amount > agent_max_amount_usd:
+        return False, (
+            f"amount {goal.amount:,.2f} {goal.currency} exceeds agent cap "
+            f"{agent_max_amount_usd:,.0f} USD — use the payments API for large transfers"
+        )
+
+    if goal.last_triggered_at is None:
+        return True, "never triggered before — firing on first cycle"
+
+    elapsed_hours = (now - goal.last_triggered_at).total_seconds() / 3600
+    if elapsed_hours >= goal.trigger_interval_hours:
+        return True, (
+            f"interval {goal.trigger_interval_hours:g}h elapsed "
+            f"({elapsed_hours:.1f}h since last trigger at "
+            f"{goal.last_triggered_at.strftime('%Y-%m-%dT%H:%M')}Z)"
+        )
+
+    remaining = goal.trigger_interval_hours - elapsed_hours
+    return False, (
+        f"interval {goal.trigger_interval_hours:g}h not yet elapsed "
+        f"({remaining:.1f}h remaining)"
+    )
+
+
+# ── Agent run ─────────────────────────────────────────────────────────────────
+
+async def run(goals: list[TreasuryGoal] | None = None) -> TreasuryAgentRun:
+    """Run one evaluation cycle over all active goals (or an explicit list).
+
+    For each goal whose trigger condition is met, fires
+    `orchestrator.process_payment` — the only actuator. Updates
+    `last_triggered_at` on fired goals. Appends a run record and returns it.
+    """
+    settings = get_settings()
+    now = _now()
+    run_id = str(uuid.uuid4())
+    active_goals = goals if goals is not None else list(_goals.values())
+
+    payments_initiated: list[str] = []
+    payments_skipped: list[str] = []
+    trigger_log: list[str] = []
+
+    for goal in active_goals:
+        should_fire, reason = evaluate_goal(goal, now, settings.agent_max_amount_usd)
+        trigger_log.append(f"[{goal.name}] {reason}.")
+
+        if not should_fire:
+            payments_skipped.append(goal.id)
+            continue
+
+        # Deterministic actuator only — orchestrator enforces policy + Firefly veto.
+        intent = _build_intent(goal, settings)
+        try:
+            payment = await orchestrator.process_payment(intent)
+        except Exception as exc:
+            trigger_log.append(f"  ✗ payment initiation failed: {exc}")
+            payments_skipped.append(goal.id)
+            continue
+
+        payments_initiated.append(payment.id)
+        trigger_log.append(
+            f"  → payment {payment.id[:8]}… status={payment.status.value}"
+            + (f", rule={payment.policy_decision.rule_fired}" if payment.policy_decision and payment.policy_decision.rule_fired else "")
+        )
+        # Update last_triggered_at on the stored goal.
+        _goals[goal.id] = goal.model_copy(update={"last_triggered_at": now})
+
+    narration = await _narrate(active_goals, trigger_log, payments_initiated, settings)
+
+    agent_run = TreasuryAgentRun(
+        id=run_id,
+        started_at=now,
+        completed_at=_now(),
+        goals_evaluated=len(active_goals),
+        goals_triggered=len(payments_initiated),
+        payments_initiated=payments_initiated,
+        payments_skipped=payments_skipped,
+        trigger_log=trigger_log,
+        narration=narration,
+        status="completed",
+    )
+    _runs.append(agent_run)
+    return agent_run
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _build_intent(goal: TreasuryGoal, settings) -> PaymentIntent:
+    sender_address = _treasury_address(settings)
+    return PaymentIntent(**{
+        "from": sender_address,
+        "to": goal.beneficiary_address,
+        "senderName": "Treasury Agent (autonomous)",
+        "senderCountry": settings.agent_sender_country,
+        "receiverName": goal.beneficiary_name,
+        "receiverCountry": goal.beneficiary_country,
+        "receiverEntityType": goal.receiver_entity_type.value,
+        "purpose": goal.purpose,
+        "amount": goal.amount,
+        "currency": goal.currency,
+        "reference": goal.reference,
+    })
+
+
+def _treasury_address(settings) -> str:
+    if not settings.treasury_wallet_seed:
+        return "rTREASURY_HOT_MOCK"
+    try:
+        from xrpl.wallet import Wallet
+
+        return Wallet.from_seed(settings.treasury_wallet_seed).address
+    except Exception:
+        return "rTREASURY_HOT_MOCK"
+
+
+async def _narrate(
+    goals: list[TreasuryGoal],
+    trigger_log: list[str],
+    payment_ids: list[str],
+    settings,
+) -> str:
+    """LLM narration — explains what was evaluated and initiated. Never decides."""
+    deferred = len(goals) - len(payment_ids)
+    facts = "\n".join(trigger_log)
+    template = (
+        f"Treasury agent evaluated {len(goals)} goal(s): "
+        f"{len(payment_ids)} initiated, {deferred} deferred.\n{facts}"
+    )
+
+    if not settings.openai_api_key:
+        return template
+
+    try:
+        from openai import AsyncOpenAI
+
+        client = AsyncOpenAI(api_key=settings.openai_api_key)
+        response = await client.chat.completions.create(
+            model=settings.openai_model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are the Treasury Agent's narrator. Write one concise paragraph "
+                        "reporting what the agent evaluated and initiated in this cycle. "
+                        "You are describing deterministic decisions already made by code — "
+                        "you are NOT making any decisions. Be factual and brief."
+                    ),
+                },
+                {"role": "user", "content": facts},
+            ],
+        )
+        return response.choices[0].message.content or template
+    except Exception:
+        return template
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
