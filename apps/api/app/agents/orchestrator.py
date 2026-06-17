@@ -97,6 +97,7 @@ async def process_payment(intent: PaymentIntent) -> Payment:
 
 
 async def _settle(payment: Payment, route, intent: PaymentIntent, memo: "execution.ComplianceMemo") -> None:
+    _log_settlement_scale(payment.id, route, intent)
     result = await execution.execute_payment(payment.id, intent, route, memo=memo)
     payment.status = PaymentStatus.settled
     payment.tx_hash = result.tx_hash
@@ -107,6 +108,7 @@ async def _settle(payment: Payment, route, intent: PaymentIntent, memo: "executi
 
 
 async def _escalate(payment: Payment, route, intent: PaymentIntent, memo: "execution.ComplianceMemo") -> None:
+    _log_settlement_scale(payment.id, route, intent)
     escrow = await execution.lock_payment(payment.id, intent, route, memo=memo)
     payment.status = PaymentStatus.pending_approval
     payment.escrow_sequence = escrow.escrow_sequence
@@ -201,6 +203,26 @@ def _secondary_explorer(tx_hash: str | None, primary_url: str | None) -> str | N
     from ..xrpl_client import bithomp_tx_url
 
     return bithomp_tx_url(tx_hash)
+
+
+def _log_settlement_scale(payment_id: str, route, intent: PaymentIntent) -> None:
+    """Narrate the testnet settlement scaling so the on-ledger amount is auditable.
+
+    Only fires in real mode with a non-1.0 scale. The scaled value comes from the
+    same helper the execution tool uses, so the log and the submitted tx agree.
+    """
+    settings = get_settings()
+    if settings.use_mock_xrpl or settings.testnet_settlement_scale == 1.0:
+        return
+    on_ledger = execution.scaled_settlement(route.dest_amount, settings)
+    _log(
+        payment_id,
+        (
+            f"Testnet settlement scaled ×{settings.testnet_settlement_scale:g}: "
+            f"{on_ledger:.6f} {settings.token_currency} settled on-ledger for the "
+            f"{intent.amount:,.2f} {intent.currency} intent (policy & approval use the true amount)."
+        ),
+    )
 
 
 def _log(payment_id: str, message: str) -> None:

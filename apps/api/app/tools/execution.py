@@ -106,7 +106,7 @@ async def execute_payment(
     kwargs: dict = {
         "account": wallet.address,
         "destination": intent.to,
-        "amount": _token_amount(settings.token_currency, route.dest_amount, settings),
+        "amount": _settle_amount(settings.token_currency, route.dest_amount, settings),
     }
     # Paths + SendMax only apply to a cross-currency payment (the treasury spends
     # a different asset than it delivers). On a same-asset direct payment XRPL
@@ -115,9 +115,9 @@ async def execute_payment(
     if route.paths:
         kwargs["paths"] = route.paths
         if route.send_max is not None:
-            kwargs["send_max"] = _token_amount(settings.token_currency, route.send_max, settings)
+            kwargs["send_max"] = _settle_amount(settings.token_currency, route.send_max, settings)
     if route.deliver_min is not None:
-        kwargs["deliver_min"] = _token_amount(settings.token_currency, route.deliver_min, settings)
+        kwargs["deliver_min"] = _settle_amount(settings.token_currency, route.deliver_min, settings)
         kwargs["flags"] = PaymentFlag.TF_PARTIAL_PAYMENT
     memos = _xrpl_memos(memo)
     if memos is not None:
@@ -159,7 +159,7 @@ async def lock_payment(
     escrow_kwargs: dict = {
         "account": wallet.address,
         "destination": intent.to,
-        "amount": _token_amount(settings.token_currency, route.dest_amount, settings),
+        "amount": _settle_amount(settings.token_currency, route.dest_amount, settings),
         "finish_after": finish_after,
     }
     memos = _xrpl_memos(memo)
@@ -228,6 +228,26 @@ def _execution_result(response, settled_status: PaymentStatus) -> ExecutionResul
         explorer_url=xrpl_client.explorer_tx_url(tx_hash),
         status=status,
     )
+
+
+def scaled_settlement(value: float, settings) -> float:
+    """Scale a settlement amount for the on-ledger transaction only.
+
+    See `Settings.testnet_settlement_scale`: on a valueless testnet a real $10k+
+    payment can't be funded in XRP, so the amount locked/paid on-ledger is scaled
+    to a fundable size while policy/compliance/audit keep the true amount. A 1.0
+    scale (production default) is a no-op. Floored at 1 drop so a small scaled
+    amount never collapses to an invalid 0-value XRPL amount.
+    """
+    scale = settings.testnet_settlement_scale
+    if scale == 1.0:
+        return value
+    return max(round(value * scale, 6), 0.000001)
+
+
+def _settle_amount(currency: str, value: float, settings):
+    """`_token_amount` with the testnet settlement scale applied to the value."""
+    return _token_amount(currency, scaled_settlement(value, settings), settings)
 
 
 def _token_amount(currency: str, value: float, settings):

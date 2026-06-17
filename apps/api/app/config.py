@@ -65,6 +65,15 @@ class Settings(BaseSettings):
     # the full flow runs offline (demo fallback / local dev without a wallet).
     use_mock_xrpl: bool = True
 
+    # Testnet has no real value, so a genuine $10k+ payment can't be funded in XRP
+    # (the faucet gives ~100 XRP, not the ~12,000 a $15k payment routes to). This
+    # factor scales ONLY the on-ledger settlement amount (the XRP/token actually
+    # locked in escrow or paid) so the escrow→Firefly-release flow is provable on
+    # a real ledger. Policy, compliance, audit, and the Firefly approval digest all
+    # use the TRUE intent amount — the human still approves the real figure. The
+    # audit log records the scaling. 1.0 = no scaling (production default).
+    testnet_settlement_scale: float = 1.0
+
     # When true, the deliberate-tamper demo endpoint is available. Never enable
     # in production — it exists solely to prove signature binding on stage.
     demo_mode: bool = False
